@@ -1,5 +1,5 @@
 diff --git a/codex-rs/tui/src/app.rs b/codex-rs/tui/src/app.rs
-index e7140a6533a6a8a3e719ba67019f7e810ab8b083..5be820d4e9a0eb900031b00dec0b4c6ea09c9533 100644
+index e7140a6533..5be820d4e9 100644
 --- a/codex-rs/tui/src/app.rs
 +++ b/codex-rs/tui/src/app.rs
 @@ -848,9 +848,15 @@ impl App {
@@ -49,7 +49,7 @@ index e7140a6533a6a8a3e719ba67019f7e810ab8b083..5be820d4e9a0eb900031b00dec0b4c6e
                      frame.set_cursor_style(chat_widget.cursor_style(area));
                      frame.set_cursor_position((x, y));
 diff --git a/codex-rs/tui/src/app/startup.rs b/codex-rs/tui/src/app/startup.rs
-index 2bb22a51dfa1cf758937b08f21455345fd14c803..61e0e4cd54f53735f7765bf48ba732b4018a638a 100644
+index 2bb22a51df..61e0e4cd54 100644
 --- a/codex-rs/tui/src/app/startup.rs
 +++ b/codex-rs/tui/src/app/startup.rs
 @@ -990,6 +990,7 @@ See the Codex keymap documentation for supported actions and examples."
@@ -76,7 +76,7 @@ index 2bb22a51dfa1cf758937b08f21455345fd14c803..61e0e4cd54f53735f7765bf48ba732b4
                      AppRunControl::Continue => {
                          if app_event_rx.is_empty() && !app.has_queued_startup_protected_request() {
 diff --git a/codex-rs/tui/src/app/tests.rs b/codex-rs/tui/src/app/tests.rs
-index 64c8bda18db957a6990441ffd57f96be606a7556..7813569d310a8a0f66193b21f36688b70cf512ce 100644
+index 64c8bda18d..7813569d31 100644
 --- a/codex-rs/tui/src/app/tests.rs
 +++ b/codex-rs/tui/src/app/tests.rs
 @@ -352,6 +352,44 @@ async fn chat_widget_frame_reuses_active_cell_height_across_frame_passes() {
@@ -125,7 +125,7 @@ index 64c8bda18db957a6990441ffd57f96be606a7556..7813569d310a8a0f66193b21f36688b7
      app_server: &mut AppServerSession,
      thread_id: ThreadId,
 diff --git a/codex-rs/tui/src/bottom_pane/chat_composer.rs b/codex-rs/tui/src/bottom_pane/chat_composer.rs
-index 967c712fe9a5f0d95999be28ae847647db8a27c0..72085042b7d065be08052936e188755146af8a5f 100644
+index 967c712fe9..72085042b7 100644
 --- a/codex-rs/tui/src/bottom_pane/chat_composer.rs
 +++ b/codex-rs/tui/src/bottom_pane/chat_composer.rs
 @@ -217,6 +217,9 @@ use crossterm::event::KeyCode;
@@ -498,7 +498,7 @@ index 967c712fe9a5f0d95999be28ae847647db8a27c0..72085042b7d065be08052936e1887551
      fn shortcut_footer_displays_configured_chords() {
          use codex_config::types::KeybindingSpec;
 diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pane/footer.rs
-index 997866be7aed832211dac3cd947f9ca7c5b8ed57..2674fce00d8f7aa5a7fcffebe2669a608d3483f4 100644
+index 997866be7a..2674fce00d 100644
 --- a/codex-rs/tui/src/bottom_pane/footer.rs
 +++ b/codex-rs/tui/src/bottom_pane/footer.rs
 @@ -1226,7 +1226,7 @@ const SHORTCUTS: &[ShortcutDescriptor] = &[
@@ -511,7 +511,7 @@ index 997866be7aed832211dac3cd947f9ca7c5b8ed57..2674fce00d8f7aa5a7fcffebe2669a60
      ShortcutDescriptor {
          id: ShortcutId::ExternalEditor,
 diff --git a/codex-rs/tui/src/bottom_pane/mod.rs b/codex-rs/tui/src/bottom_pane/mod.rs
-index f249fad8b2eb8c02a6d4cd04008e39d173cb3c15..c6a10e30802c4f6774577e38a2b970e4b3f74ffb 100644
+index f249fad8b2..c6a10e3080 100644
 --- a/codex-rs/tui/src/bottom_pane/mod.rs
 +++ b/codex-rs/tui/src/bottom_pane/mod.rs
 @@ -50,6 +50,7 @@ use codex_protocol::user_input::TextElement;
@@ -580,7 +580,7 @@ index f249fad8b2eb8c02a6d4cd04008e39d173cb3c15..c6a10e30802c4f6774577e38a2b970e4
      pub(crate) fn composer_cursor(&self) -> usize {
          self.composer.cursor()
 diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__chat_composer__tests__footer_mode_configured_key_chords.snap b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__chat_composer__tests__footer_mode_configured_key_chords.snap
-index efad837915aa43ffd72905268c02a879c9f63238..9a1f9771a3ad7f582dfbd86712f323a74af7e884 100644
+index efad837915..9a1f9771a3 100644
 --- a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__chat_composer__tests__footer_mode_configured_key_chords.snap
 +++ b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__chat_composer__tests__footer_mode_configured_key_chords.snap
 @@ -12,7 +12,7 @@ expression: terminal.backend()
@@ -593,7 +593,7 @@ index efad837915aa43ffd72905268c02a879c9f63238..9a1f9771a3ad7f582dfbd86712f323a7
  "  ctrl + r search history                             ctrl + c to exit                              "
  "  ⌥ + , reasoning down                                ⌥ + . reasoning up                            "
 diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__chat_composer__tests__footer_mode_shortcut_overlay.snap b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__chat_composer__tests__footer_mode_shortcut_overlay.snap
-index 5239a34bd24fecf1299222832cc6915812a18fd3..2b208eba833f078e23893ab3504f7dddfd0f02fe 100644
+index 5239a34bd2..2b208eba83 100644
 --- a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__chat_composer__tests__footer_mode_shortcut_overlay.snap
 +++ b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__chat_composer__tests__footer_mode_shortcut_overlay.snap
 @@ -12,7 +12,7 @@ expression: terminal.backend()
@@ -606,7 +606,7 @@ index 5239a34bd24fecf1299222832cc6915812a18fd3..2b208eba833f078e23893ab3504f7ddd
  "  ctrl + r search history                    ctrl + c to exit                                       "
  "  ⌥ + , reasoning down                       ⌥ + . reasoning up                                     "
 diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__chat_composer__tests__footer_mode_shortcut_overlay_queue_submissions.snap b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__chat_composer__tests__footer_mode_shortcut_overlay_queue_submissions.snap
-index 582724eea7d4e32bbd96719380918e9de3f4d7c7..16522150921793f58d85c8abe62c18b2908760a7 100644
+index 582724eea7..1652215092 100644
 --- a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__chat_composer__tests__footer_mode_shortcut_overlay_queue_submissions.snap
 +++ b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__chat_composer__tests__footer_mode_shortcut_overlay_queue_submissions.snap
 @@ -12,7 +12,7 @@ expression: terminal.backend()
@@ -619,7 +619,7 @@ index 582724eea7d4e32bbd96719380918e9de3f4d7c7..16522150921793f58d85c8abe62c18b2
  "  ctrl + r search history                    ctrl + c to exit                                       "
  "  ⌥ + , reasoning down                       ⌥ + . reasoning up                                     "
 diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_collaboration_modes_enabled.snap b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_collaboration_modes_enabled.snap
-index 3b67a90683e07a76aa431b23706c2b787433ec2c..b16576880d814b5596257769cc1c79b158eb87f9 100644
+index 3b67a90683..b16576880d 100644
 --- a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_collaboration_modes_enabled.snap
 +++ b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_collaboration_modes_enabled.snap
 @@ -4,7 +4,7 @@ expression: terminal.backend()
@@ -632,7 +632,7 @@ index 3b67a90683e07a76aa431b23706c2b787433ec2c..b16576880d814b5596257769cc1c79b1
  "  ctrl + r search history                    ctrl + c to exit                   "
  "  ⌥ + , reasoning down                       ⌥ + . reasoning up                 "
 diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_running.snap b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_running.snap
-index 7c733bd13b0e7d7b6b001b9f2d8122a569819b42..71f121c4471ed0d73daea00ea16842d8b6fcd8a0 100644
+index 7c733bd13b..71f121c447 100644
 --- a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_running.snap
 +++ b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_running.snap
 @@ -4,7 +4,7 @@ expression: terminal.backend()
@@ -645,7 +645,7 @@ index 7c733bd13b0e7d7b6b001b9f2d8122a569819b42..71f121c4471ed0d73daea00ea16842d8
  "  ctrl + r search history                    ctrl + c to interrupt              "
  "  ⌥ + , reasoning down                       ⌥ + . reasoning up                 "
 diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_shift_and_esc.snap b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_shift_and_esc.snap
-index 07e970628356e64b005a0445faa4baf3d07a0e25..66b6a0e7561bb2a36a5de3a287748bb180c27e0a 100644
+index 07e9706283..66b6a0e756 100644
 --- a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_shift_and_esc.snap
 +++ b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_shift_and_esc.snap
 @@ -4,7 +4,7 @@ expression: terminal.backend()
@@ -659,7 +659,7 @@ index 07e970628356e64b005a0445faa4baf3d07a0e25..66b6a0e7561bb2a36a5de3a287748bb1
  "  ⌥ + , reasoning down                       ⌥ + . reasoning up                 "
 diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__textarea__tests__textarea_selection_uses_reverse_video.snap b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__textarea__tests__textarea_selection_uses_reverse_video.snap
 new file mode 100644
-index 0000000000000000000000000000000000000000..a43df71a11ae1561af2c95d1fd68ec09bc389e57
+index 0000000000..a43df71a11
 --- /dev/null
 +++ b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__textarea__tests__textarea_selection_uses_reverse_video.snap
 @@ -0,0 +1,7 @@
@@ -671,7 +671,7 @@ index 0000000000000000000000000000000000000000..a43df71a11ae1561af2c95d1fd68ec09
 +hello world
 +      ^^^^^
 diff --git a/codex-rs/tui/src/bottom_pane/startup.rs b/codex-rs/tui/src/bottom_pane/startup.rs
-index 86b73cb729df06fd636faa4af79cb972b310b9d3..ec1d625eec7b4f5203be0090bb448d4005963c8c 100644
+index 86b73cb729..ec1d625eec 100644
 --- a/codex-rs/tui/src/bottom_pane/startup.rs
 +++ b/codex-rs/tui/src/bottom_pane/startup.rs
 @@ -54,6 +54,14 @@ impl BottomPane {
@@ -690,7 +690,7 @@ index 86b73cb729df06fd636faa4af79cb972b310b9d3..ec1d625eec7b4f5203be0090bb448d40
      pub(crate) fn enable_vim_in_insert_mode(&mut self) {
          self.composer.enable_vim_in_insert_mode();
 diff --git a/codex-rs/tui/src/bottom_pane/textarea.rs b/codex-rs/tui/src/bottom_pane/textarea.rs
-index e8900ad606f14612d6611ac3e6339c0cc3cf500c..56643382875f466088c62d4834a45aab7cb2535b 100644
+index e8900ad606..73a3cb636f 100644
 --- a/codex-rs/tui/src/bottom_pane/textarea.rs
 +++ b/codex-rs/tui/src/bottom_pane/textarea.rs
 @@ -1,5 +1,5 @@
@@ -907,7 +907,7 @@ index e8900ad606f14612d6611ac3e6339c0cc3cf500c..56643382875f466088c62d4834a45aab
 +            return None;
 +        }
 +        let lines = self.wrapped_lines(area.width);
-+        let scroll = self.effective_scroll(area.height, &lines, state.scroll) as usize;
++        let scroll = self.effective_scroll(area, &lines, state.scroll) as usize;
 +        let line = lines.get(scroll + usize::from(row - area.y))?;
 +        let line_end = line.end.saturating_sub(1).min(self.text.len());
 +        let target_col = usize::from(column - area.x);
@@ -1332,7 +1332,7 @@ index e8900ad606f14612d6611ac3e6339c0cc3cf500c..56643382875f466088c62d4834a45aab
          use ratatui::Terminal;
 diff --git a/codex-rs/tui/src/bottom_pane/textarea/selection.rs b/codex-rs/tui/src/bottom_pane/textarea/selection.rs
 new file mode 100644
-index 0000000000000000000000000000000000000000..c6011a643f9144c59de347419026c75263d7da5d
+index 0000000000..c6011a643f
 --- /dev/null
 +++ b/codex-rs/tui/src/bottom_pane/textarea/selection.rs
 @@ -0,0 +1,32 @@
@@ -1369,7 +1369,7 @@ index 0000000000000000000000000000000000000000..c6011a643f9144c59de347419026c752
 +    }
 +}
 diff --git a/codex-rs/tui/src/chatwidget.rs b/codex-rs/tui/src/chatwidget.rs
-index 16d4a6e5932e63f4e8185a59c00dfe1d5dd91b35..bf343d9e8ee0c112c807928dda26d13b4d4b3558 100644
+index 16d4a6e593..bf343d9e8e 100644
 --- a/codex-rs/tui/src/chatwidget.rs
 +++ b/codex-rs/tui/src/chatwidget.rs
 @@ -163,6 +163,7 @@ use crossterm::event::KeyCode;
@@ -1404,7 +1404,7 @@ index 16d4a6e5932e63f4e8185a59c00dfe1d5dd91b35..bf343d9e8ee0c112c807928dda26d13b
  
      pub(crate) fn toggle_vim_mode_and_notify(&mut self) {
 diff --git a/codex-rs/tui/src/chatwidget/constructor.rs b/codex-rs/tui/src/chatwidget/constructor.rs
-index f45ae82fef827e04dfa35cd771ad3f501ff0afbc..b2f83997122d657e2d3267ac1ffb7786e6afbdfa 100644
+index f45ae82fef..b2f8399712 100644
 --- a/codex-rs/tui/src/chatwidget/constructor.rs
 +++ b/codex-rs/tui/src/chatwidget/constructor.rs
 @@ -236,6 +236,7 @@ impl ChatWidget {
@@ -1416,7 +1416,7 @@ index f45ae82fef827e04dfa35cd771ad3f501ff0afbc..b2f83997122d657e2d3267ac1ffb7786
              current_rollout_path: None,
              current_cwd,
 diff --git a/codex-rs/tui/src/chatwidget/interaction.rs b/codex-rs/tui/src/chatwidget/interaction.rs
-index e669e135be03cb92ca89482853cab9669638deea..a18ebaf22d0f9290a66ac21b27b3432a66c45466 100644
+index e669e135be..a421f24205 100644
 --- a/codex-rs/tui/src/chatwidget/interaction.rs
 +++ b/codex-rs/tui/src/chatwidget/interaction.rs
 @@ -9,6 +9,35 @@ impl ChatWidget {
@@ -1515,12 +1515,14 @@ index e669e135be03cb92ca89482853cab9669638deea..a18ebaf22d0f9290a66ac21b27b3432a
                  && c.eq_ignore_ascii_case(&'v') =>
              {
                  match paste_image_to_temp_png() {
-@@ -294,6 +364,52 @@ impl ChatWidget {
+@@ -294,6 +364,54 @@ impl ChatWidget {
          });
      }
  
 +    fn copy_selected_composer_text(&mut self) -> bool {
-+        self.copy_selected_composer_text_with(crate::clipboard_copy::copy_to_clipboard)
++        self.copy_selected_composer_text_with(|text| {
++            crate::clipboard_copy::copy_to_clipboard(text, CopyFormat::PlainText)
++        })
 +    }
 +
 +    fn cut_selected_composer_text(&mut self) -> bool {
@@ -1531,7 +1533,7 @@ index e669e135be03cb92ca89482853cab9669638deea..a18ebaf22d0f9290a66ac21b27b3432a
 +        self.bottom_pane.clear_quit_shortcut_hint();
 +        self.quit_shortcut_expires_at = None;
 +        self.quit_shortcut_key = None;
-+        match crate::clipboard_copy::copy_to_clipboard(&selected) {
++        match crate::clipboard_copy::copy_to_clipboard(&selected, CopyFormat::PlainText) {
 +            Ok(lease) => {
 +                self.clipboard_lease = lease;
 +                self.bottom_pane.delete_composer_selection();
@@ -1569,7 +1571,7 @@ index e669e135be03cb92ca89482853cab9669638deea..a18ebaf22d0f9290a66ac21b27b3432a
      pub(super) fn copy_last_agent_markdown_with(
          &mut self,
 diff --git a/codex-rs/tui/src/chatwidget/rendering.rs b/codex-rs/tui/src/chatwidget/rendering.rs
-index 61a5403d2722c693a62ee698d27e1f1d6038334e..a3594d84da22192ad2052e47e89a846c9cd65e9e 100644
+index 61a5403d27..a3594d84da 100644
 --- a/codex-rs/tui/src/chatwidget/rendering.rs
 +++ b/codex-rs/tui/src/chatwidget/rendering.rs
 @@ -200,6 +200,11 @@ impl ChatWidget {
@@ -1594,7 +1596,7 @@ index 61a5403d2722c693a62ee698d27e1f1d6038334e..a3594d84da22192ad2052e47e89a846c
  
      fn desired_height(&self, width: u16) -> u16 {
 diff --git a/codex-rs/tui/src/chatwidget/tests/composer_submission.rs b/codex-rs/tui/src/chatwidget/tests/composer_submission.rs
-index af912ae51fb7164c360037dd0046f90dd799cb09..66742dbf18a8150cd0836154fa679b1b05ece979 100644
+index af912ae51f..66742dbf18 100644
 --- a/codex-rs/tui/src/chatwidget/tests/composer_submission.rs
 +++ b/codex-rs/tui/src/chatwidget/tests/composer_submission.rs
 @@ -8,7 +8,34 @@ use codex_protocol::permissions::FileSystemSandboxEntry;
@@ -1633,7 +1635,7 @@ index af912ae51fb7164c360037dd0046f90dd799cb09..66742dbf18a8150cd0836154fa679b1b
  fn paste_hidden_shell_payload(chat: &mut ChatWidget) -> String {
      let payload = format!("!echo {}", "x".repeat(1000));
 diff --git a/codex-rs/tui/src/clipboard_paste.rs b/codex-rs/tui/src/clipboard_paste.rs
-index 55ca6ca6590e4f9a73cdda7982623c3034383cf6..be7d0928a2d7983651d78212842cca21f386a19e 100644
+index 55ca6ca659..be7d0928a2 100644
 --- a/codex-rs/tui/src/clipboard_paste.rs
 +++ b/codex-rs/tui/src/clipboard_paste.rs
 @@ -6,6 +6,7 @@ use tempfile::Builder;
@@ -1764,7 +1766,7 @@ index 55ca6ca6590e4f9a73cdda7982623c3034383cf6..be7d0928a2d7983651d78212842cca21
              #[cfg(target_os = "linux")]
              {
 diff --git a/codex-rs/tui/src/cwd_prompt.rs b/codex-rs/tui/src/cwd_prompt.rs
-index b0d6205602884906fc9ed851220c70f16d283d3b..ff70042c8169a3427e94e223411f229badd4d3b1 100644
+index b0d6205602..ff70042c81 100644
 --- a/codex-rs/tui/src/cwd_prompt.rs
 +++ b/codex-rs/tui/src/cwd_prompt.rs
 @@ -131,10 +131,15 @@ pub(crate) async fn run_cwd_selection_prompt(
@@ -1785,7 +1787,7 @@ index b0d6205602884906fc9ed851220c70f16d283d3b..ff70042c8169a3427e94e223411f229b
                      tui.draw(u16::MAX, |frame| {
                          frame.render_widget_ref(&screen, frame.area());
 diff --git a/codex-rs/tui/src/external_agent_config_migration/mod.rs b/codex-rs/tui/src/external_agent_config_migration/mod.rs
-index a80fe03af1e0106bcebdef5dba939949cd5c376f..2e5415f1a92e87b9ed0b201dfe745aa882e9ba2b 100644
+index a80fe03af1..2e5415f1a9 100644
 --- a/codex-rs/tui/src/external_agent_config_migration/mod.rs
 +++ b/codex-rs/tui/src/external_agent_config_migration/mod.rs
 @@ -105,10 +105,15 @@ pub(crate) async fn run_external_agent_config_migration_prompt(
@@ -1806,7 +1808,7 @@ index a80fe03af1e0106bcebdef5dba939949cd5c376f..2e5415f1a92e87b9ed0b201dfe745aa8
                      let _ = tui.draw(u16::MAX, |frame| {
                          frame.render_widget_ref(&screen, frame.area());
 diff --git a/codex-rs/tui/src/external_agent_config_migration/source.rs b/codex-rs/tui/src/external_agent_config_migration/source.rs
-index bc01ad78c39722c13fb4c1a08676238ea34bba23..a20646aff62f9ab14afd46cfd09afb2817e7274c 100644
+index bc01ad78c3..a20646aff6 100644
 --- a/codex-rs/tui/src/external_agent_config_migration/source.rs
 +++ b/codex-rs/tui/src/external_agent_config_migration/source.rs
 @@ -62,10 +62,15 @@ pub(crate) async fn run_external_agent_config_source_prompt(
@@ -1827,7 +1829,7 @@ index bc01ad78c39722c13fb4c1a08676238ea34bba23..a20646aff62f9ab14afd46cfd09afb28
                      let _ = tui.draw(u16::MAX, |frame| {
                          frame.render_widget_ref(&screen, frame.area());
 diff --git a/codex-rs/tui/src/lib.rs b/codex-rs/tui/src/lib.rs
-index 3d9650d3d4c5391dc15fe5bc5b79386aab2ae4d7..44dfe04460a77c9ff329b0ab186a3e50db0239df 100644
+index 3d9650d3d4..44dfe04460 100644
 --- a/codex-rs/tui/src/lib.rs
 +++ b/codex-rs/tui/src/lib.rs
 @@ -232,6 +232,7 @@ mod updates;
@@ -1839,7 +1841,7 @@ index 3d9650d3d4c5391dc15fe5bc5b79386aab2ae4d7..44dfe04460a77c9ff329b0ab186a3e50
  #[cfg(any(target_os = "windows", test))]
  mod windows_sandbox;
 diff --git a/codex-rs/tui/src/model_migration.rs b/codex-rs/tui/src/model_migration.rs
-index 094fb731b0f44d50c1d6e2a447ec6e80fb5ddbc5..47356058b82739e8b405e3bbc410b37c49f5ab7f 100644
+index 094fb731b0..47356058b8 100644
 --- a/codex-rs/tui/src/model_migration.rs
 +++ b/codex-rs/tui/src/model_migration.rs
 @@ -151,10 +151,17 @@ pub(crate) async fn run_model_migration_prompt(
@@ -1862,7 +1864,7 @@ index 094fb731b0f44d50c1d6e2a447ec6e80fb5ddbc5..47356058b82739e8b405e3bbc410b37c
                      let _ = alt.tui.draw(u16::MAX, |frame| {
                          frame.render_widget_ref(&screen, frame.area());
 diff --git a/codex-rs/tui/src/onboarding/onboarding_screen.rs b/codex-rs/tui/src/onboarding/onboarding_screen.rs
-index 756e231b501fa21d6ad824b9b2c101e5a1f7aeb4..e484e8d4684c3f2fb748d71fcdc92eb4c14eeebf 100644
+index 756e231b50..e484e8d468 100644
 --- a/codex-rs/tui/src/onboarding/onboarding_screen.rs
 +++ b/codex-rs/tui/src/onboarding/onboarding_screen.rs
 @@ -527,6 +527,11 @@ pub(crate) async fn run_onboarding_app(
@@ -1886,7 +1888,7 @@ index 756e231b501fa21d6ad824b9b2c101e5a1f7aeb4..e484e8d4684c3f2fb748d71fcdc92eb4
                          | TuiEvent::Resume
                          | TuiEvent::Resize(_)
 diff --git a/codex-rs/tui/src/resume_picker.rs b/codex-rs/tui/src/resume_picker.rs
-index ef4dd6df726755663c90dde0e5b3fd62820d3197..23354a66524842395a5be6ccdc1b43a85fd8bab0 100644
+index ef4dd6df72..23354a6652 100644
 --- a/codex-rs/tui/src/resume_picker.rs
 +++ b/codex-rs/tui/src/resume_picker.rs
 @@ -585,6 +585,13 @@ async fn run_session_picker_with_loader(
@@ -1912,7 +1914,7 @@ index ef4dd6df726755663c90dde0e5b3fd62820d3197..23354a66524842395a5be6ccdc1b43a8
                          let list_width = list_viewport_width(screen_size.width);
                          let list_height =
 diff --git a/codex-rs/tui/src/startup_draft.rs b/codex-rs/tui/src/startup_draft.rs
-index 4c3dbe00cd981d3c71eb87ed622f6f5bfe78c2be..fe26eeb356035808dd8a5dfe738a934a50431c04 100644
+index 4c3dbe00cd..fe26eeb356 100644
 --- a/codex-rs/tui/src/startup_draft.rs
 +++ b/codex-rs/tui/src/startup_draft.rs
 @@ -283,6 +283,11 @@ impl StartupDraftPump {
@@ -1969,7 +1971,7 @@ index 4c3dbe00cd981d3c71eb87ed622f6f5bfe78c2be..fe26eeb356035808dd8a5dfe738a934a
  }
  
 diff --git a/codex-rs/tui/src/startup_draft_tests.rs b/codex-rs/tui/src/startup_draft_tests.rs
-index 39d38c8bdb3d5a818a30b8c72cade9d752bf2f7e..0f8985abf5a8df0bff94c9727191f5e8db17790f 100644
+index 39d38c8bdb..0f8985abf5 100644
 --- a/codex-rs/tui/src/startup_draft_tests.rs
 +++ b/codex-rs/tui/src/startup_draft_tests.rs
 @@ -473,7 +473,6 @@ fn startup_draft_allows_local_editor_shortcuts_without_startup_actions() {
@@ -2004,7 +2006,7 @@ index 39d38c8bdb3d5a818a30b8c72cade9d752bf2f7e..0f8985abf5a8df0bff94c9727191f5e8
          &mut pump.bottom_pane,
          KeyEvent::new(KeyCode::Char('w'), KeyModifiers::CONTROL),
 diff --git a/codex-rs/tui/src/startup_hooks_review.rs b/codex-rs/tui/src/startup_hooks_review.rs
-index 002e58b14417a33e8984e61c9e69f4b34f18edcb..4a7deef44a35f0db7812d7184418ec64069600fe 100644
+index 002e58b144..4a7deef44a 100644
 --- a/codex-rs/tui/src/startup_hooks_review.rs
 +++ b/codex-rs/tui/src/startup_hooks_review.rs
 @@ -110,6 +110,11 @@ async fn run_startup_hooks_review_app(
@@ -2029,7 +2031,7 @@ index 002e58b14417a33e8984e61c9e69f4b34f18edcb..4a7deef44a35f0db7812d7184418ec64
                  draw_view(tui, &view)?;
              }
 diff --git a/codex-rs/tui/src/tui.rs b/codex-rs/tui/src/tui.rs
-index 96b3fbcbb96809a193583d39d0af2fe9dc52b29e..452ad6c7333386d95cb88406273d3578553eabee 100644
+index 96b3fbcbb9..452ad6c733 100644
 --- a/codex-rs/tui/src/tui.rs
 +++ b/codex-rs/tui/src/tui.rs
 @@ -19,10 +19,13 @@ use crossterm::SynchronizedUpdate;
@@ -2314,7 +2316,7 @@ index 96b3fbcbb96809a193583d39d0af2fe9dc52b29e..452ad6c7333386d95cb88406273d3578
          // After the external program `f` finishes, reset terminal state and flush any buffered keypresses.
          flush_terminal_input_buffer();
 diff --git a/codex-rs/tui/src/tui/event_stream.rs b/codex-rs/tui/src/tui/event_stream.rs
-index de4ceae632f5b95ba20bfa5bf6d2598e40ce7a61..16c8a51b0f8e8d48f0cc08d38fa06bce20de4483 100644
+index de4ceae632..16c8a51b0f 100644
 --- a/codex-rs/tui/src/tui/event_stream.rs
 +++ b/codex-rs/tui/src/tui/event_stream.rs
 @@ -271,6 +271,7 @@ impl<S: EventSource + Default + Unpin> TuiEventStream<S> {
@@ -2334,7 +2336,7 @@ index de4ceae632f5b95ba20bfa5bf6d2598e40ce7a61..16c8a51b0f8e8d48f0cc08d38fa06bce
      }
  }
 diff --git a/codex-rs/tui/src/tui/screen_size.rs b/codex-rs/tui/src/tui/screen_size.rs
-index c9f657886e67fd00d2def92a2ba3a9ae0888b982..d99b1a9baa74b9f0a575ef5479bf2439ab9e16ae 100644
+index c9f657886e..d99b1a9baa 100644
 --- a/codex-rs/tui/src/tui/screen_size.rs
 +++ b/codex-rs/tui/src/tui/screen_size.rs
 @@ -47,11 +47,13 @@ impl Tui {
@@ -2354,7 +2356,7 @@ index c9f657886e67fd00d2def92a2ba3a9ae0888b982..d99b1a9baa74b9f0a575ef5479bf2439
          .then_some(size);
          Ok(size)
 diff --git a/codex-rs/tui/src/tui/windows_console.rs b/codex-rs/tui/src/tui/windows_console.rs
-index e328f4ef506dc320763410aac211309cb5852a47..a90b4c48e5f51be511a0071e45f10d3fdeb93a04 100644
+index e328f4ef50..a90b4c48e5 100644
 --- a/codex-rs/tui/src/tui/windows_console.rs
 +++ b/codex-rs/tui/src/tui/windows_console.rs
 @@ -1,3 +1,4 @@
@@ -2399,8 +2401,20 @@ index e328f4ef506dc320763410aac211309cb5852a47..a90b4c48e5f51be511a0071e45f10d3f
  #[cfg(windows)]
  pub(super) fn set_input_record_mode() -> std::io::Result<()> {
      use windows_sys::Win32::System::Console::SetConsoleMode;
+diff --git a/codex-rs/tui/src/unarchive_prompt.rs b/codex-rs/tui/src/unarchive_prompt.rs
+index 3f51822762..592a8135ed 100644
+--- a/codex-rs/tui/src/unarchive_prompt.rs
++++ b/codex-rs/tui/src/unarchive_prompt.rs
+@@ -58,6 +58,7 @@ pub(crate) async fn run_unarchive_prompt(
+             | TuiEvent::Resize(_)
+             | TuiEvent::Resume
+             | TuiEvent::FocusGained => {}
++            TuiEvent::Mouse(_) => continue,
+             TuiEvent::FocusLost => continue,
+         }
+         guard.draw(&screen)?;
 diff --git a/codex-rs/tui/src/update_prompt.rs b/codex-rs/tui/src/update_prompt.rs
-index 688d1134877961f20d7fa16354b568394f74c2fe..94730431c83dd8bbdd0987048cc4cf55416cbdcb 100644
+index 688d113487..94730431c8 100644
 --- a/codex-rs/tui/src/update_prompt.rs
 +++ b/codex-rs/tui/src/update_prompt.rs
 @@ -56,10 +56,15 @@ pub(crate) async fn run_update_prompt_if_needed(
@@ -2422,7 +2436,7 @@ index 688d1134877961f20d7fa16354b568394f74c2fe..94730431c83dd8bbdd0987048cc4cf55
                          frame.render_widget_ref(&screen, frame.area());
 diff --git a/codex-rs/tui/src/vscode_bridge.rs b/codex-rs/tui/src/vscode_bridge.rs
 new file mode 100644
-index 0000000000000000000000000000000000000000..ca34a68642085848629245556c3c18c5e96ac757
+index 0000000000..ca34a68642
 --- /dev/null
 +++ b/codex-rs/tui/src/vscode_bridge.rs
 @@ -0,0 +1,85 @@
