@@ -38,6 +38,10 @@ $actual = $failureBlocks |
     ForEach-Object { [regex]::Matches($_.Groups['body'].Value, '(?m)^    ([A-Za-z0-9_]+(?:::[A-Za-z0-9_]+)+)\s*$') } |
     ForEach-Object { $_.Groups[1].Value } |
     Sort-Object -Unique
+$expected = Get-Content -LiteralPath $expectedPath |
+    Where-Object { $_.Trim() } |
+    ForEach-Object { $_.Trim() } |
+    Sort-Object -Unique
 $summaryMatches = [regex]::Matches(
     $text,
     'test result: (?:ok|FAILED)\.\s+(\d+) passed;\s+(\d+) failed;\s+(\d+) ignored;'
@@ -46,13 +50,23 @@ if ($summaryMatches.Count -eq 0) { throw 'Unable to locate Codex TUI test-count 
 $passed = ($summaryMatches | ForEach-Object { [int]$_.Groups[1].Value } | Measure-Object -Sum).Sum
 $failed = ($summaryMatches | ForEach-Object { [int]$_.Groups[2].Value } | Measure-Object -Sum).Sum
 $ignored = ($summaryMatches | ForEach-Object { [int]$_.Groups[3].Value } | Measure-Object -Sum).Sum
+$transientMcpTest = 'app::tests::session_lifecycle_requests::local_mcp_respects_configured_servers_and_managed_requirements'
+$unexpected = @($actual | Where-Object { $_ -notin $expected })
+if (
+    $unexpected.Count -eq 1 -and
+    $unexpected[0] -eq $transientMcpTest -and
+    $text -match 'An existing connection was forcibly closed by the remote host\. \(os error 10054\)'
+) {
+    Write-Output "Retrying the sole unexpected local-MCP transport failure: $transientMcpTest"
+    & cargo "+$Toolchain" test --locked --manifest-path $manifest -p codex-tui --lib $transientMcpTest -- --exact
+    if ($LASTEXITCODE -ne 0) { throw "The isolated local-MCP transport retry failed: $transientMcpTest" }
+    $actual = @($actual | Where-Object { $_ -ne $transientMcpTest })
+    $passed++
+    $failed--
+}
 if ($passed -ne $ExpectedPassed -or $failed -ne 32 -or $ignored -ne 10) {
     throw "Codex TUI test counts changed: $passed passed, $failed failed, $ignored ignored; expected $ExpectedPassed/32/10."
 }
-$expected = Get-Content -LiteralPath $expectedPath |
-    Where-Object { $_.Trim() } |
-    ForEach-Object { $_.Trim() } |
-    Sort-Object -Unique
 $missing = @($expected | Where-Object { $_ -notin $actual })
 $extra = @($actual | Where-Object { $_ -notin $expected })
 if ($missing.Count -ne 0 -or $extra.Count -ne 0) {
