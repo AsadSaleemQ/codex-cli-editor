@@ -51,19 +51,24 @@ $passed = ($summaryMatches | ForEach-Object { [int]$_.Groups[1].Value } | Measur
 $failed = ($summaryMatches | ForEach-Object { [int]$_.Groups[2].Value } | Measure-Object -Sum).Sum
 $ignored = ($summaryMatches | ForEach-Object { [int]$_.Groups[3].Value } | Measure-Object -Sum).Sum
 $unexpected = @($actual | Where-Object { $_ -notin $expected })
-$transientTest = if ($unexpected.Count -eq 1) { $unexpected[0] } else { '' }
-$transientBlockPattern = '(?s)---- ' + [regex]::Escape($transientTest) +
-    ' stdout ----.*?An existing connection was forcibly closed by the remote host\. \(os error 10054\)'
+$retryableTransportFailures = @($unexpected | Where-Object {
+    $pattern = '(?s)---- ' + [regex]::Escape($_) +
+        ' stdout ----.*?An existing connection was forcibly closed by the remote host\. \(os error 10054\)'
+    $text -match $pattern
+})
 if (
-    $unexpected.Count -eq 1 -and
-    $text -match $transientBlockPattern
+    $unexpected.Count -ge 1 -and
+    $unexpected.Count -le 4 -and
+    $retryableTransportFailures.Count -eq $unexpected.Count
 ) {
-    Write-Output "Retrying the sole unexpected Windows transport failure: $transientTest"
-    & cargo "+$Toolchain" test --locked --manifest-path $manifest -p codex-tui --lib $transientTest -- --exact
-    if ($LASTEXITCODE -ne 0) { throw "The isolated Windows transport retry failed: $transientTest" }
-    $actual = @($actual | Where-Object { $_ -ne $transientTest })
-    $passed++
-    $failed--
+    foreach ($transientTest in $retryableTransportFailures) {
+        Write-Output "Retrying unexpected Windows transport failure in isolation: $transientTest"
+        & cargo "+$Toolchain" test --locked --manifest-path $manifest -p codex-tui --lib $transientTest -- --exact
+        if ($LASTEXITCODE -ne 0) { throw "The isolated Windows transport retry failed: $transientTest" }
+    }
+    $actual = @($actual | Where-Object { $_ -notin $retryableTransportFailures })
+    $passed += $retryableTransportFailures.Count
+    $failed -= $retryableTransportFailures.Count
 }
 if ($passed -ne $ExpectedPassed -or $failed -ne 32 -or $ignored -ne 10) {
     throw "Codex TUI test counts changed: $passed passed, $failed failed, $ignored ignored; expected $ExpectedPassed/32/10."
