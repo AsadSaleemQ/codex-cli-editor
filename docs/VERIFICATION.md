@@ -7,7 +7,7 @@ This document describes the durable validation contract for Codex CLI Editor. Ve
 | Component | Validated baseline |
 |---|---|
 | Platform | Windows 11 x64 terminals, including the VS Code integrated terminal |
-| Enhanced Codex | Codex CLI 0.148.0, upstream tag `rust-v0.148.0` |
+| Enhanced Codex | Codex CLI 0.154.0, upstream tag `rust-v0.154.0` |
 | VS Code host | 1.134 and 1.135 |
 | Release toolchain | Rust 1.95.0 with Windows MSVC |
 

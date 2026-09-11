@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without v prefix
         required: true
-        default: 0.2.0
+        default: 0.2.1
       manifest_sequence:
         description: Strictly increasing signed manifest sequence
         required: true
@@ -91,7 +91,7 @@ jobs:
           "manifest_sequence=$sequence" >> $env:GITHUB_OUTPUT
           "expires_unix=$expires" >> $env:GITHUB_OUTPUT
           "issued_unix=$issued" >> $env:GITHUB_OUTPUT
-          "codex_version=0.148.0" >> $env:GITHUB_OUTPUT
+          "codex_version=0.154.0" >> $env:GITHUB_OUTPUT
           "repository=$env:GITHUB_REPOSITORY" >> $env:GITHUB_OUTPUT
 
   preflight:
@@ -105,7 +105,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: codex-preflight-3ba0f711642a888aec92a611a3f3b2211157ff89-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          key: codex-preflight-6b9826e3aa83b1a5947db50f4332cb9c65f1b340-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
       - name: Install pinned Rust toolchain
         shell: pwsh
         run: rustup toolchain install 1.95.0-x86_64-pc-windows-msvc --profile minimal --component rustfmt,clippy
@@ -119,9 +119,9 @@ jobs:
         shell: pwsh
         run: |
           $upstream = Join-Path $env:RUNNER_TEMP 'codex-release-preflight'
-          $patch = Join-Path $env:GITHUB_WORKSPACE 'patches\codex\rust-v0.148.0\0001-desktop-composer.patch'
+          $patch = Join-Path $env:GITHUB_WORKSPACE 'patches\codex\rust-v0.154.0\0001-desktop-composer.patch'
           git clone --filter=blob:none https://github.com/openai/codex.git $upstream
-          git -C $upstream checkout 3ba0f711642a888aec92a611a3f3b2211157ff89
+          git -C $upstream checkout 6b9826e3aa83b1a5947db50f4332cb9c65f1b340
           git -C $upstream apply --check $patch
           .\scripts\refresh_codex_lock.ps1 -UpstreamRoot $upstream
           .\scripts\check_codex_tui_baseline.ps1 -UpstreamRoot $upstream

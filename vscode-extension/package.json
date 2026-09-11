@@ -2,7 +2,7 @@
   "name": "codex-cli-editor",
   "displayName": "Codex CLI Editor",
   "description": "Codex CLI Editor turns enhanced Codex terminals into chat-style editors while preserving native behavior everywhere else.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "publisher": "asadsaleemq",
   "license": "Apache-2.0",
   "repository": {

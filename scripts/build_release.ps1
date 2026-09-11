@@ -4,16 +4,16 @@ param(
     [Parameter(Mandatory)] [uint64] $ManifestSequence,
     [Parameter(Mandatory)] [uint64] $ExpiresUnix,
     [uint64] $IssuedUnix = 0,
-    [string] $CodexVersion = '0.148.0',
+    [string] $CodexVersion = '0.154.0',
     [string] $Repository = 'AsadSaleemQ/codex-cli-editor',
-    [string[]] $VsCodeVersions = @('1.134.0', '1.135.0')
+    [string[]] $VsCodeVersions = @('1.134.0', '1.135.0', '1.137.0')
 )
 
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$upstreamCommit = '3ba0f711642a888aec92a611a3f3b2211157ff89'
-$patch = Join-Path $root 'patches\codex\rust-v0.148.0\0001-desktop-composer.patch'
-$expectedPatchSha256 = 'f12b510cc9842ba6be8c1ab509af9b303f9e6e4bfc4c36510396c734ebcf9e03'
+$upstreamCommit = '6b9826e3aa83b1a5947db50f4332cb9c65f1b340'
+$patch = Join-Path $root 'patches\codex\rust-v0.154.0\0001-desktop-composer.patch'
+$expectedPatchSha256 = 'f42586812a8e19b2d0b259382949e406ae9902a9319920fa6b8d705f9c7c4b96'
 $work = Join-Path $root ".work\release-$Version"
 $upstream = Join-Path $work 'codex'
 $artifacts = Join-Path $root '.artifacts'

@@ -106,8 +106,8 @@ Updates are explicit and bundle-based; startup never blocks on a network downloa
 | Layer | Supported or validated baseline |
 |---|---|
 | Operating system | Windows 11 x64. macOS and Linux are not currently supported. |
-| Editor | Microsoft VS Code 1.134 and 1.135 validated; the extension manifest accepts VS Code `^1.90.0`. VS Code forks are untested. |
-| Enhanced Codex | Codex CLI 0.148.0 (`rust-v0.148.0`) with an exact signed compatibility match. |
+| Editor | Microsoft VS Code 1.134, 1.135, and 1.137 validated; the extension manifest accepts VS Code `^1.90.0`. VS Code forks are untested. |
+| Enhanced Codex | Codex CLI 0.154.0 (`rust-v0.154.0`) with an exact signed compatibility match. |
 | Terminal | VS Code integrated terminal on the validated Windows baseline. |
 | Release toolchain | Rust 1.95.0 with Windows MSVC. |
 

@@ -48,7 +48,7 @@ Codex CLI Editor combines the VS Code extension in this package with an enhanced
 | Layer | Supported or validated baseline |
 |---|---|
 | Operating system | Windows 11 x64 validated. The complete Codex CLI Editor product is not currently supported on macOS or Linux. |
-| Editor | Microsoft VS Code 1.134 and 1.135 validated; the manifest accepts VS Code `^1.90.0`. VS Code forks are untested. |
+| Editor | Microsoft VS Code 1.134, 1.135, and 1.137 validated; the manifest accepts VS Code `^1.90.0`. VS Code forks are untested. |
 | Enhanced Codex | Codex CLI 0.148.0 (`rust-v0.148.0`) with an exact signed compatibility match. This provides the full chat-style composer. |
 | Terminal | VS Code integrated terminal on the validated Windows baseline. Other terminal hosts do not load this extension. |
 

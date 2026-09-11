@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([int64] $MaximumFileBytes = 1048576, [int64] $MaximumTotalBytes = 524288)
+param([int64] $MaximumFileBytes = 1048576, [int64] $MaximumTotalBytes = 655360)
 
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

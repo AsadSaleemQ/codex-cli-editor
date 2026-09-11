@@ -1,3 +1,10 @@
+# Codex CLI Editor v0.2.1
+
+## Compatibility
+
+- Rebases the enhanced desktop composer onto Codex CLI 0.154.0.
+- Validates Microsoft VS Code 1.137 while retaining the existing `^1.90.0` extension host range.
+
 # Codex CLI Editor v0.2.0
 
 Codex CLI Editor now uses one identity across every public and technical surface.

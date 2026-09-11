@@ -1,6 +1,6 @@
 [package]
 name = "codex-cli-editor"
-version = "0.2.0"
+version = "0.2.1"
 default-run = "codex-cli-editor"
 edition = "2024"
 license = "Apache-2.0"
