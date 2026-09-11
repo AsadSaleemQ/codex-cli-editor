@@ -579,6 +579,19 @@ index f249fad8b2..c6a10e3080 100644
      #[cfg(test)]
      pub(crate) fn composer_cursor(&self) -> usize {
          self.composer.cursor()
+diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__chat_composer__tests__agents_navigation_help.snap b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__chat_composer__tests__agents_navigation_help.snap
+index 5d02395387..10890fca6c 100644
+--- a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__chat_composer__tests__agents_navigation_help.snap
++++ b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__chat_composer__tests__agents_navigation_help.snap
+@@ -12,7 +12,7 @@ expression: terminal.backend()
+ "                                                                                "
+ "  / for commands                             ! for shell commands               "
+ "  ctrl + j for newline                       tab to submit message              "
+-"  @ for file paths                           ctrl + v to paste images           "
++"  @ for file paths                           ctrl + v to paste                  "
+ "  ctrl + g to edit in external editor        esc esc to edit previous message   "
+ "  ctrl + r search history                    ctrl + c to exit                   "
+ "  ⌥ + , reasoning down                       ⌥ + . reasoning up                 "
 diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__chat_composer__tests__footer_mode_configured_key_chords.snap b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__chat_composer__tests__footer_mode_configured_key_chords.snap
 index efad837915..9a1f9771a3 100644
 --- a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__chat_composer__tests__footer_mode_configured_key_chords.snap
@@ -2316,7 +2329,7 @@ index 96b3fbcbb9..452ad6c733 100644
          // After the external program `f` finishes, reset terminal state and flush any buffered keypresses.
          flush_terminal_input_buffer();
 diff --git a/codex-rs/tui/src/tui/event_stream.rs b/codex-rs/tui/src/tui/event_stream.rs
-index de4ceae632..16c8a51b0f 100644
+index de4ceae632..9d4d46dcc5 100644
 --- a/codex-rs/tui/src/tui/event_stream.rs
 +++ b/codex-rs/tui/src/tui/event_stream.rs
 @@ -271,6 +271,7 @@ impl<S: EventSource + Default + Unpin> TuiEventStream<S> {
@@ -2335,6 +2348,38 @@ index de4ceae632..16c8a51b0f 100644
          }
      }
  }
+@@ -417,7 +417,7 @@ mod tests {
+     }
+ 
+     #[tokio::test(flavor = "current_thread")]
+-    async fn key_event_skips_unmapped() {
++    async fn mouse_and_key_events_are_forwarded() {
+         let (broker, handle, _draw_tx, draw_rx, terminal_focused) = setup();
+         let mut stream = make_stream(broker, draw_rx, terminal_focused);
+ 
+@@ -432,6 +432,22 @@ mod tests {
+             KeyModifiers::NONE,
+         ))));
+ 
++        let next = stream.next().await.unwrap();
++        match next {
++            TuiEvent::Mouse(mouse) => {
++                assert_eq!(
++                    mouse,
++                    MouseEvent {
++                        kind: MouseEventKind::Moved,
++                        column: 0,
++                        row: 0,
++                        modifiers: KeyModifiers::NONE,
++                    }
++                );
++            }
++            other => panic!("expected mouse event, got {other:?}"),
++        }
++
+         let next = stream.next().await.unwrap();
+         match next {
+             TuiEvent::Key(key) => {
 diff --git a/codex-rs/tui/src/tui/screen_size.rs b/codex-rs/tui/src/tui/screen_size.rs
 index c9f657886e..d99b1a9baa 100644
 --- a/codex-rs/tui/src/tui/screen_size.rs
