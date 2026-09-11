@@ -138,7 +138,7 @@ jobs:
           cargo +1.95.0-x86_64-pc-windows-msvc check --locked `
             --manifest-path (Join-Path $upstream 'codex-rs\Cargo.toml') `
             -p codex-code-mode-host
-          .\scripts\check_codex_tui_baseline.ps1 -UpstreamRoot $upstream -ExpectedPassed 3571
+          .\scripts\check_codex_tui_baseline.ps1 -UpstreamRoot $upstream -ExpectedPassed 4259
 
   build-primary:
     needs: [prepare, preflight]

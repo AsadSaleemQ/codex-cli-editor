@@ -127,4 +127,4 @@ jobs:
         shell: pwsh
         run: |
           $upstream = Join-Path $env:RUNNER_TEMP 'codex-upstream'
-          .\scripts\check_codex_tui_baseline.ps1 -UpstreamRoot $upstream -ExpectedPassed 3571
+          .\scripts\check_codex_tui_baseline.ps1 -UpstreamRoot $upstream -ExpectedPassed 4259

@@ -2,7 +2,7 @@
 param(
     [Parameter(Mandatory)] [string] $UpstreamRoot,
     [string] $Toolchain = '1.95.0-x86_64-pc-windows-msvc',
-    [int] $ExpectedPassed = 3557
+    [int] $ExpectedPassed = 4245
 )
 
 $ErrorActionPreference = 'Stop'
@@ -46,8 +46,8 @@ if ($summaryMatches.Count -eq 0) { throw 'Unable to locate Codex TUI test-count 
 $passed = ($summaryMatches | ForEach-Object { [int]$_.Groups[1].Value } | Measure-Object -Sum).Sum
 $failed = ($summaryMatches | ForEach-Object { [int]$_.Groups[2].Value } | Measure-Object -Sum).Sum
 $ignored = ($summaryMatches | ForEach-Object { [int]$_.Groups[3].Value } | Measure-Object -Sum).Sum
-if ($passed -ne $ExpectedPassed -or $failed -ne 26 -or $ignored -ne 10) {
-    throw "Codex TUI test counts changed: $passed passed, $failed failed, $ignored ignored; expected $ExpectedPassed/26/10."
+if ($passed -ne $ExpectedPassed -or $failed -ne 32 -or $ignored -ne 10) {
+    throw "Codex TUI test counts changed: $passed passed, $failed failed, $ignored ignored; expected $ExpectedPassed/32/10."
 }
 $expected = Get-Content -LiteralPath $expectedPath |
     Where-Object { $_.Trim() } |
