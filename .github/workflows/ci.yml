@@ -75,7 +75,7 @@ jobs:
         run: |
           $upstream = Join-Path $env:RUNNER_TEMP 'codex-upstream'
           $patch = "$env:GITHUB_WORKSPACE\patches\codex\rust-v0.154.0\0001-desktop-composer.patch"
-          $expected = 'f42586812a8e19b2d0b259382949e406ae9902a9319920fa6b8d705f9c7c4b96'
+          $expected = 'a93ac22c790f7c3829f66906461cbaa10d0fe0e037a7bce727c7802260ed8b8e'
           if ((Get-FileHash -Algorithm SHA256 -LiteralPath $patch).Hash.ToLowerInvariant() -ne $expected) { throw 'patch hash mismatch' }
           git clone --filter=blob:none https://github.com/openai/codex.git $upstream
           git -C $upstream checkout 6b9826e3aa83b1a5947db50f4332cb9c65f1b340
