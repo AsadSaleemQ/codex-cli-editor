@@ -50,17 +50,18 @@ if ($summaryMatches.Count -eq 0) { throw 'Unable to locate Codex TUI test-count 
 $passed = ($summaryMatches | ForEach-Object { [int]$_.Groups[1].Value } | Measure-Object -Sum).Sum
 $failed = ($summaryMatches | ForEach-Object { [int]$_.Groups[2].Value } | Measure-Object -Sum).Sum
 $ignored = ($summaryMatches | ForEach-Object { [int]$_.Groups[3].Value } | Measure-Object -Sum).Sum
-$transientMcpTest = 'app::tests::session_lifecycle_requests::local_mcp_respects_configured_servers_and_managed_requirements'
 $unexpected = @($actual | Where-Object { $_ -notin $expected })
+$transientTest = if ($unexpected.Count -eq 1) { $unexpected[0] } else { '' }
+$transientBlockPattern = '(?s)---- ' + [regex]::Escape($transientTest) +
+    ' stdout ----.*?An existing connection was forcibly closed by the remote host\. \(os error 10054\)'
 if (
     $unexpected.Count -eq 1 -and
-    $unexpected[0] -eq $transientMcpTest -and
-    $text -match 'An existing connection was forcibly closed by the remote host\. \(os error 10054\)'
+    $text -match $transientBlockPattern
 ) {
-    Write-Output "Retrying the sole unexpected local-MCP transport failure: $transientMcpTest"
-    & cargo "+$Toolchain" test --locked --manifest-path $manifest -p codex-tui --lib $transientMcpTest -- --exact
-    if ($LASTEXITCODE -ne 0) { throw "The isolated local-MCP transport retry failed: $transientMcpTest" }
-    $actual = @($actual | Where-Object { $_ -ne $transientMcpTest })
+    Write-Output "Retrying the sole unexpected Windows transport failure: $transientTest"
+    & cargo "+$Toolchain" test --locked --manifest-path $manifest -p codex-tui --lib $transientTest -- --exact
+    if ($LASTEXITCODE -ne 0) { throw "The isolated Windows transport retry failed: $transientTest" }
+    $actual = @($actual | Where-Object { $_ -ne $transientTest })
     $passed++
     $failed--
 }
