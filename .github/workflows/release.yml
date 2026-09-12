@@ -6,7 +6,7 @@ on:
       version:
         description: Release version without v prefix
         required: true
-        default: 0.2.1
+        default: 0.2.2
       manifest_sequence:
         description: Strictly increasing signed manifest sequence
         required: true

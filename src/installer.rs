@@ -415,8 +415,46 @@ where
             .unwrap_or_default()
             .as_nanos()
     ));
+    let shim_staging = if dispatcher_changed {
+        let shims = prepared
+            .shim_directory
+            .as_ref()
+            .ok_or(CodexCliEditorError::NotInstalled)?;
+        let directory = store.root().join(format!(
+            ".shims-staging.{}.{:032x}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&directory)
+            .map_err(|source| CodexCliEditorError::io(&directory, source))?;
+        atomic_copy(
+            &staging.join("codex-cli-editor.exe"),
+            &directory.join("codex-cli-editor.exe"),
+        )?;
+        if prepared.native_targets.contains_key(&CliKind::Codex) {
+            atomic_copy(
+                &staging.join("codex-cli-editor.exe"),
+                &directory.join("codex.exe"),
+            )?;
+        }
+        Some((shims.clone(), directory))
+    } else {
+        None
+    };
+    let shim_backup = store.root().join(format!(
+        ".shims-rollback.{}.{:032x}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos()
+    ));
     let replacements = RefCell::new(Vec::new());
     let activated = RefCell::new(false);
+    let shims_activated = Cell::new(false);
     let expected_install_id = prepared.install_id.clone();
     let expected_sequence = prepared.highest_manifest_sequence;
     let result = store.transaction(|current| {
@@ -426,9 +464,22 @@ where
         {
             return Err(CodexCliEditorError::StateChangedDuringOperation);
         }
-        std::fs::rename(&staging, &final_directory)
-            .map_err(|source| CodexCliEditorError::io(&final_directory, source))?;
+        publish_staged_release(&staging, &final_directory)?;
         activated.replace(true);
+        verify_release_bundle(
+            &final_directory,
+            &final_directory.join("codex-cli-editor.exe"),
+            &final_directory.join("codex.exe"),
+            &final_directory.join("codex-code-mode-host.exe"),
+            &final_directory.join("compatibility-manifest.json"),
+            &final_directory.join("compatibility-manifest.sig"),
+            expected_sequence,
+        )?;
+        verify_declared_artifact(
+            &verified,
+            "codex-cli-editor.vsix",
+            &final_directory.join("codex-cli-editor.vsix"),
+        )?;
         std::fs::create_dir(&rollback_directory)
             .map_err(|source| CodexCliEditorError::io(&rollback_directory, source))?;
 
@@ -448,23 +499,9 @@ where
             &replacements,
         )?;
 
-        if dispatcher_changed {
-            let shims = state
-                .shim_directory
-                .as_ref()
-                .ok_or(CodexCliEditorError::NotInstalled)?;
-            let mut shim_names = vec!["codex-cli-editor.exe"];
-            if state.native_targets.contains_key(&CliKind::Codex) {
-                shim_names.push("codex.exe");
-            }
-            for name in shim_names {
-                backup_and_replace(
-                    &final_directory.join("codex-cli-editor.exe"),
-                    &shims.join(name),
-                    &rollback_directory,
-                    &replacements,
-                )?;
-            }
+        if let Some((shims, replacement)) = &shim_staging {
+            activate_shim_directory(shims, replacement, &shim_backup)?;
+            shims_activated.set(true);
         }
 
         state.installed_version = VERSION.into();
@@ -494,14 +531,30 @@ where
 
     if result.is_err() {
         rollback_replacements(&replacements.into_inner());
+        if shims_activated.get()
+            && let Some((shims, _)) = &shim_staging
+        {
+            rollback_shim_directory(shims, &shim_backup);
+        }
         if *activated.borrow() {
             let _ = std::fs::remove_dir_all(&final_directory);
         } else {
             let _ = std::fs::remove_dir_all(&staging);
         }
     }
+    if let Some((_, replacement)) = &shim_staging {
+        let _ = std::fs::remove_dir_all(replacement);
+    }
     let _ = std::fs::remove_dir_all(&rollback_directory);
     result?;
+    if let Err(error) = std::fs::remove_dir_all(&shim_backup)
+        && error.kind() != std::io::ErrorKind::NotFound
+    {
+        eprintln!(
+            "warning: the previous running shim remains at {} and can be removed after existing Codex sessions exit: {error}",
+            shim_backup.display()
+        );
+    }
     prune_retained_releases(&versions_directory, &final_directory);
     println!(
         "Codex CLI Editor activated manifest sequence {} from {}",
@@ -509,6 +562,74 @@ where
         bundle.directory().display()
     );
     Ok(())
+}
+
+fn publish_staged_release(staging: &Path, final_directory: &Path) -> Result<()> {
+    publish_staged_release_with(staging, final_directory, |source, target| {
+        std::fs::rename(source, target)
+    })
+}
+
+fn publish_staged_release_with(
+    staging: &Path,
+    final_directory: &Path,
+    rename: impl FnOnce(&Path, &Path) -> std::io::Result<()>,
+) -> Result<()> {
+    match rename(staging, final_directory) {
+        Ok(()) => return Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {}
+        Err(source) => return Err(CodexCliEditorError::io(final_directory, source)),
+    }
+
+    std::fs::create_dir(final_directory)
+        .map_err(|source| CodexCliEditorError::io(final_directory, source))?;
+    let copy_result = (|| {
+        for entry in
+            std::fs::read_dir(staging).map_err(|source| CodexCliEditorError::io(staging, source))?
+        {
+            let entry = entry.map_err(|source| CodexCliEditorError::io(staging, source))?;
+            let source = entry.path();
+            let kind = entry
+                .file_type()
+                .map_err(|error| CodexCliEditorError::io(&source, error))?;
+            if !kind.is_file() || kind.is_symlink() {
+                return Err(CodexCliEditorError::UnsafeTarget(source));
+            }
+            atomic_copy(&source, &final_directory.join(entry.file_name()))?;
+        }
+        Ok(())
+    })();
+    if let Err(error) = copy_result {
+        let _ = std::fs::remove_dir_all(final_directory);
+        return Err(error);
+    }
+    if let Err(error) = std::fs::remove_dir_all(staging) {
+        eprintln!(
+            "warning: verified update staging residue remains at {}: {error}",
+            staging.display()
+        );
+    }
+    Ok(())
+}
+
+fn activate_shim_directory(shims: &Path, replacement: &Path, backup: &Path) -> Result<()> {
+    std::fs::rename(shims, backup).map_err(|source| CodexCliEditorError::io(shims, source))?;
+    if let Err(source) = std::fs::rename(replacement, shims) {
+        let _ = std::fs::rename(backup, shims);
+        return Err(CodexCliEditorError::io(shims, source));
+    }
+    Ok(())
+}
+
+fn rollback_shim_directory(shims: &Path, backup: &Path) {
+    let failed = backup.with_extension("failed");
+    if std::fs::rename(shims, &failed).is_ok() {
+        if std::fs::rename(backup, shims).is_ok() {
+            let _ = std::fs::remove_dir_all(failed);
+        } else {
+            let _ = std::fs::rename(failed, shims);
+        }
+    }
 }
 
 fn verify_managed_codex_compatibility(
@@ -1613,6 +1734,88 @@ mod tests {
 
         assert!(!interrupted.exists());
         assert_eq!(std::fs::read_dir(&versions).unwrap().count(), 0);
+    }
+
+    #[test]
+    fn release_publication_copies_verified_files_when_directory_rename_is_denied() {
+        let directory = crate::test_support::TempDir::new();
+        let staging = directory.path().join("staging");
+        let published = directory.path().join("published");
+        std::fs::create_dir(&staging).unwrap();
+        std::fs::write(staging.join("artifact.exe"), b"verified").unwrap();
+
+        super::publish_staged_release_with(&staging, &published, |_, _| {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::PermissionDenied,
+                "directory rename denied",
+            ))
+        })
+        .unwrap();
+
+        assert_eq!(
+            std::fs::read(published.join("artifact.exe")).unwrap(),
+            b"verified"
+        );
+        assert!(!staging.exists());
+    }
+
+    #[test]
+    fn shim_directory_swap_preserves_the_previous_dispatcher_for_cleanup() {
+        let directory = crate::test_support::TempDir::new();
+        let shims = directory.path().join("shims");
+        let replacement = directory.path().join("replacement");
+        let backup = directory.path().join("backup");
+        std::fs::create_dir(&shims).unwrap();
+        std::fs::create_dir(&replacement).unwrap();
+        std::fs::write(shims.join("codex.exe"), b"old").unwrap();
+        std::fs::write(replacement.join("codex.exe"), b"new").unwrap();
+
+        super::activate_shim_directory(&shims, &replacement, &backup).unwrap();
+
+        assert_eq!(std::fs::read(shims.join("codex.exe")).unwrap(), b"new");
+        assert_eq!(std::fs::read(backup.join("codex.exe")).unwrap(), b"old");
+        assert!(!replacement.exists());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn shim_directory_swap_succeeds_while_the_previous_dispatcher_is_running() {
+        const CHILD_MARKER_ENV: &str = "CODEX_CLI_EDITOR_SHIM_SWAP_CHILD_MARKER";
+        if let Some(marker) = std::env::var_os(CHILD_MARKER_ENV) {
+            std::fs::write(marker, b"ready").unwrap();
+            std::thread::sleep(std::time::Duration::from_secs(2));
+            return;
+        }
+
+        let directory = crate::test_support::TempDir::new();
+        let shims = directory.path().join("shims");
+        let replacement = directory.path().join("replacement");
+        let backup = directory.path().join("backup");
+        let marker = directory.path().join("child-ready");
+        std::fs::create_dir(&shims).unwrap();
+        std::fs::create_dir(&replacement).unwrap();
+        let running = shims.join("codex.exe");
+        std::fs::copy(std::env::current_exe().unwrap(), &running).unwrap();
+        std::fs::write(replacement.join("codex.exe"), b"new").unwrap();
+        let mut child = std::process::Command::new(&running)
+            .args([
+                "--exact",
+                "installer::tests::shim_directory_swap_succeeds_while_the_previous_dispatcher_is_running",
+            ])
+            .env(CHILD_MARKER_ENV, &marker)
+            .spawn()
+            .unwrap();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        while !marker.exists() && std::time::Instant::now() < deadline {
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        assert!(marker.exists(), "child dispatcher did not become ready");
+
+        super::activate_shim_directory(&shims, &replacement, &backup).unwrap();
+
+        assert_eq!(std::fs::read(shims.join("codex.exe")).unwrap(), b"new");
+        assert!(backup.join("codex.exe").exists());
+        assert!(child.wait().unwrap().success());
     }
 
     #[test]

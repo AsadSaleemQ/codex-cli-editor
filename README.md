@@ -111,6 +111,16 @@ Updates are explicit and bundle-based; startup never blocks on a network downloa
 | Terminal | VS Code integrated terminal on the validated Windows baseline. |
 | Release toolchain | Rust 1.95.0 with Windows MSVC. |
 
+Validated release combinations:
+
+| Codex CLI Editor | Native Codex | Microsoft VS Code | Validation |
+|---|---|---|---|
+| 0.2.2 / 0.2.1 | 0.154.0 | 1.137.0 | Automated gates and live Windows terminal acceptance. |
+| 0.2.2 / 0.2.1 | 0.154.0 | 1.134.0, 1.135.0 | Automated compatibility baselines. |
+| 0.2.0 | 0.148.0 | 1.134.0, 1.135.0 | Published automated compatibility baseline. |
+
+Compatibility is release-specific: the signed manifest enables enhanced mode only for its exact native Codex version. Versions outside this table are not claimed as tested.
+
 Host-version drift may warn without changing the pinned enhanced binary; suspicious native-target or artifact changes fail closed.
 
 Release assets are reproducibly built, hash-checked, provenance-attested, and finalized with a signing key that is never uploaded to GitHub. Windows may still show SmartScreen on an unsigned executable without established reputation.

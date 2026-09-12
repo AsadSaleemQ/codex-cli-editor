@@ -61,8 +61,18 @@ foreach ($target in @($signaturePath, $generatedPublicKey, $archive, "$archive.s
 $manifestBytes = [IO.File]::ReadAllBytes($manifestPath)
 $manifestText = [Text.Encoding]::UTF8.GetString($manifestBytes)
 $schemaPath = Join-Path $root 'compatibility\manifest.schema.json'
-if (-not ($manifestText | Test-Json -SchemaFile $schemaPath -ErrorAction Stop)) { throw 'unsigned manifest failed schema validation' }
-$manifest = $manifestText | ConvertFrom-Json
+$testJson = Get-Command Test-Json -ErrorAction SilentlyContinue
+if ($testJson -and -not ($manifestText | Test-Json -SchemaFile $schemaPath -ErrorAction Stop)) { throw 'unsigned manifest failed schema validation' }
+try { $manifest = $manifestText | ConvertFrom-Json }
+catch { throw 'unsigned manifest is not valid JSON' }
+$requiredManifestProperties = @('schema_version', 'sequence', 'issued_unix', 'expires_unix', 'minimum_dispatcher_version', 'compatibility', 'artifacts')
+$actualManifestProperties = @($manifest.PSObject.Properties.Name)
+if (@($requiredManifestProperties | Where-Object { $_ -notin $actualManifestProperties }).Count -ne 0 -or
+    @($actualManifestProperties | Where-Object { $_ -notin $requiredManifestProperties }).Count -ne 0 -or
+    [uint64]$manifest.schema_version -ne 1 -or [uint64]$manifest.sequence -lt 1 -or
+    -not ($manifest.compatibility -is [Array]) -or -not ($manifest.artifacts -is [Array])) {
+    throw 'unsigned manifest failed schema validation'
+}
 if ([string]$manifest.minimum_dispatcher_version -ne $Version) { throw 'manifest dispatcher version does not match release version' }
 if ([uint64]$manifest.issued_unix -ne $IssuedUnix) { throw 'manifest timestamp does not match the prepared release timestamp' }
 if ([uint64]$manifest.sequence -ne $ManifestSequence) { throw 'manifest sequence does not match the prepared release sequence' }

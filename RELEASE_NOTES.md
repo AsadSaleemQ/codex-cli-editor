@@ -1,3 +1,16 @@
+# Codex CLI Editor v0.2.2
+
+## Corrected
+
+- Completes signed Windows updates when security software denies a staging-directory rename, then re-verifies the published release before activation.
+- Replaces the canonical shim directory as one unit so already-running Codex sessions can finish on the prior executable while new terminals receive the updated dispatcher.
+- Supports release finalization from Windows PowerShell 5.1 as well as PowerShell 7.
+
+## Validated compatibility
+
+- Windows 11 x64, Microsoft VS Code 1.137.0, and Codex CLI 0.154.0 passed live terminal acceptance.
+- Microsoft VS Code 1.134.0 and 1.135.0 remain automated compatibility baselines for the same extension host contract.
+
 # Codex CLI Editor v0.2.1
 
 ## Compatibility
