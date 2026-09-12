@@ -62,9 +62,31 @@ if (
     $retryableTransportFailures.Count -eq $unexpected.Count
 ) {
     foreach ($transientTest in $retryableTransportFailures) {
-        Write-Output "Retrying unexpected Windows transport failure in isolation: $transientTest"
-        & cargo "+$Toolchain" test --locked --manifest-path $manifest -p codex-tui --lib $transientTest -- --exact
-        if ($LASTEXITCODE -ne 0) { throw "The isolated Windows transport retry failed: $transientTest" }
+        $recovered = $false
+        for ($attempt = 1; $attempt -le 3; $attempt++) {
+            Write-Output "Retrying unexpected Windows transport failure in isolation ($attempt/3): $transientTest"
+            $retryLines = [Collections.Generic.List[string]]::new()
+            $ErrorActionPreference = 'Continue'
+            & cargo "+$Toolchain" test --locked --manifest-path $manifest -p codex-tui --lib $transientTest -- --exact 2>&1 |
+                ForEach-Object {
+                    $line = $_.ToString()
+                    $retryLines.Add($line)
+                    Write-Output $line
+                }
+            $retryExit = $LASTEXITCODE
+            $ErrorActionPreference = 'Stop'
+            if ($retryExit -eq 0) {
+                $recovered = $true
+                break
+            }
+            $retryText = $retryLines -join "`n"
+            $retryFailurePattern = '(?s)---- ' + [regex]::Escape($transientTest) +
+                ' stdout ----.*?An existing connection was forcibly closed by the remote host\. \(os error 10054\)'
+            if ($retryText -notmatch $retryFailurePattern) {
+                throw "The isolated retry failed for a reason other than the exact Windows transport reset: $transientTest"
+            }
+        }
+        if (-not $recovered) { throw "The isolated Windows transport retry failed three times: $transientTest" }
     }
     $actual = @($actual | Where-Object { $_ -notin $retryableTransportFailures })
     $passed += $retryableTransportFailures.Count
