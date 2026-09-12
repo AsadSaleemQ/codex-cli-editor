@@ -67,8 +67,23 @@ try {
     }
 
     $tag = "codex-cli-editor-v$version-codex$($codexVersions[0])"
-    $existing = @(& gh release view $tag --repo $Repository 2>$null)
-    if ($LASTEXITCODE -eq 0) { throw "Release tag already exists: $tag" }
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        # Windows PowerShell 5.1 promotes native stderr to ErrorRecord objects when
+        # ErrorActionPreference is Stop. A missing release is the expected result
+        # of this guard, so collect the command result under Continue and validate
+        # its exit code and message explicitly.
+        $ErrorActionPreference = 'Continue'
+        $existing = @(& gh release view $tag --repo $Repository 2>&1)
+        $existingExitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+    if ($existingExitCode -eq 0) { throw "Release tag already exists: $tag" }
+    $existingMessage = ($existing -join ' ')
+    if ($existingExitCode -ne 1 -or $existingMessage -notmatch '(?i)release not found') {
+        throw "Unable to check whether release tag exists: $existingMessage"
+    }
     $assetNames = @(
         "codex-cli-editor-$version-windows-x64.zip",
         "codex-cli-editor-$version-windows-x64.zip.sha256",
