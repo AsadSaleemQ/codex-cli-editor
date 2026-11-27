@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)] [string] $UpstreamRoot,
-    [string] $Toolchain = '1.95.0-x86_64-pc-windows-msvc',
-    [int] $ExpectedPassed = 4245
+    [string] $Toolchain = '1.99.1-x86_64-pc-windows-msvc',
+    [ValidateRange(0, 100)] [int] $AddedTests = 0
 )
 
 $ErrorActionPreference = 'Stop'
@@ -11,9 +11,15 @@ $env:INSTA_WORKSPACE_ROOT = [IO.Path]::GetFullPath((Join-Path $UpstreamRoot 'cod
 $env:INSTA_UPDATE = 'no'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $manifest = Join-Path $UpstreamRoot 'codex-rs\Cargo.toml'
-$expectedPath = Join-Path $root 'compatibility\codex-tui-windows-baseline-failures.txt'
+$expectedPath = Join-Path $UpstreamRoot '.codex-cli-editor-test-baseline.json'
+$commit = (& git -C $UpstreamRoot rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or $commit -ne '3d86e43b075adeba2193ec5c22ac92f55afd82e6') { throw 'Unexpected upstream commit for the Windows test baseline.' }
+if ($AddedTests -eq 0) {
+    & git -C $UpstreamRoot diff --quiet HEAD -- codex-rs/tui
+    if ($LASTEXITCODE -ne 0) { throw 'Measure the baseline before applying the TUI patch.' }
+}
 if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) { throw "Missing upstream manifest: $manifest" }
-if (-not (Test-Path -LiteralPath $expectedPath -PathType Leaf)) { throw "Missing failure baseline: $expectedPath" }
+if ($AddedTests -gt 0 -and -not (Test-Path -LiteralPath $expectedPath -PathType Leaf)) { throw "Missing failure baseline: $expectedPath" }
 
 $outputLines = [Collections.Generic.List[string]]::new()
 $ErrorActionPreference = 'Continue'
@@ -27,20 +33,12 @@ $testExit = $LASTEXITCODE
 $ErrorActionPreference = 'Stop'
 $text = $outputLines -join "`n"
 $failureBlocks = [regex]::Matches($text, '(?ms)(?:^|\n)failures:\n(?<body>.*?)(?=\ntest result:)')
-if ($failureBlocks.Count -eq 0) {
-    if ($testExit -eq 0) {
-        throw 'The patched suite unexpectedly has no failures; refresh the unpatched baseline before changing this gate.'
-    }
-    $tail = @($outputLines | Select-Object -Last 20) -join [Environment]::NewLine
-    throw "Unable to locate any cargo test failure list. Cargo tail:$([Environment]::NewLine)$tail"
+if ($testExit -ne 0 -and ($failureBlocks.Count -eq 0 -or $text -match '(?m)^error: (could not compile|doctest failed|process did not exit successfully)')) {
+    throw 'Cargo failed to execute the complete Windows test suite.'
 }
 $actual = $failureBlocks |
     ForEach-Object { [regex]::Matches($_.Groups['body'].Value, '(?m)^    ([A-Za-z0-9_]+(?:::[A-Za-z0-9_]+)+)\s*$') } |
     ForEach-Object { $_.Groups[1].Value } |
-    Sort-Object -Unique
-$expected = Get-Content -LiteralPath $expectedPath |
-    Where-Object { $_.Trim() } |
-    ForEach-Object { $_.Trim() } |
     Sort-Object -Unique
 $summaryMatches = [regex]::Matches(
     $text,
@@ -50,6 +48,18 @@ if ($summaryMatches.Count -eq 0) { throw 'Unable to locate Codex TUI test-count 
 $passed = ($summaryMatches | ForEach-Object { [int]$_.Groups[1].Value } | Measure-Object -Sum).Sum
 $failed = ($summaryMatches | ForEach-Object { [int]$_.Groups[2].Value } | Measure-Object -Sum).Sum
 $ignored = ($summaryMatches | ForEach-Object { [int]$_.Groups[3].Value } | Measure-Object -Sum).Sum
+if ($AddedTests -eq 0) {
+    if ($passed -lt 4000 -or $failed -ne @($actual | Where-Object { $_ }).Count) { throw 'Incomplete clean Windows TUI test inventory.' }
+    [ordered]@{ commit = $commit; passed = $passed; failed = $failed; ignored = $ignored; failures = @($actual | Where-Object { $_ }) } |
+        ConvertTo-Json | Set-Content -LiteralPath $expectedPath
+    Write-Output "Measured clean Codex Windows baseline ($passed passed, $failed failed, $ignored ignored)."
+    $global:LASTEXITCODE = 0
+    return
+}
+$baseline = Get-Content -LiteralPath $expectedPath -Raw | ConvertFrom-Json
+if ($baseline.commit -ne $commit) { throw 'Baseline commit mismatch.' }
+$expected = @($baseline.failures)
+$ExpectedPassed = $baseline.passed + $AddedTests
 $unexpected = @($actual | Where-Object { $_ -notin $expected })
 $retryableTransportFailures = @($unexpected | Where-Object {
     $pattern = '(?s)---- ' + [regex]::Escape($_) +
@@ -92,8 +102,8 @@ if (
     $passed += $retryableTransportFailures.Count
     $failed -= $retryableTransportFailures.Count
 }
-if ($passed -ne $ExpectedPassed -or $failed -ne 32 -or $ignored -ne 10) {
-    throw "Codex TUI test counts changed: $passed passed, $failed failed, $ignored ignored; expected $ExpectedPassed/32/10."
+if ($passed -ne $ExpectedPassed -or $failed -ne $baseline.failed -or $ignored -ne $baseline.ignored) {
+    throw "Codex TUI test counts changed: $passed passed, $failed failed, $ignored ignored; expected $ExpectedPassed/$($baseline.failed)/$($baseline.ignored)."
 }
 $missing = @($expected | Where-Object { $_ -notin $actual })
 $extra = @($actual | Where-Object { $_ -notin $expected })
@@ -102,6 +112,6 @@ if ($missing.Count -ne 0 -or $extra.Count -ne 0) {
     if ($extra.Count -ne 0) { Write-Error "New patched-suite failures: $($extra -join ', ')" }
     throw 'Patched Codex TUI failures differ from the independently recorded unpatched baseline.'
 }
-if ($testExit -eq 0) { throw 'Cargo reported success while an expected failure list was parsed.' }
-Write-Output "Codex TUI suite matches the committed Windows failure baseline exactly ($passed passed, $failed known failures, $ignored ignored; no new failures)."
+if (($testExit -eq 0) -ne ($failed -eq 0 -and $retryableTransportFailures.Count -eq 0)) { throw 'Cargo exit status differs from parsed test results.' }
+Write-Output "Codex TUI suite matches the clean Windows failure baseline exactly ($passed passed, $failed known failures, $ignored ignored; no new failures)."
 $global:LASTEXITCODE = 0

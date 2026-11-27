@@ -1,0 +1,575 @@
+diff --git a/codex-rs/tui/src/app.rs b/codex-rs/tui/src/app.rs
+index 766afaa4..bcc87d65 100644
+--- a/codex-rs/tui/src/app.rs
++++ b/codex-rs/tui/src/app.rs
+@@ -930,6 +930,26 @@ impl App {
+             tui.frame_requester().schedule_frame();
+             return Ok(AppRunControl::Continue);
+         }
++        let prompt_active = self.overlay.is_none()
++            && !self.chat_widget.is_read_only_view()
++            && !self.chat_widget.has_active_modal()
++            && !self.focused_sidebar_chooser(tui)
++            && !self.transcript_view.has_active_interaction();
++        if !tui.is_alt_screen_active() && cfg!(windows) {
++            let wheel = matches!(&event, TuiEvent::Mouse(mouse) if matches!(mouse.kind,
++                MouseEventKind::ScrollUp | MouseEventKind::ScrollDown));
++            if wheel
++                || !prompt_active
++                || (matches!(&event, TuiEvent::Draw)
++                    && self.chat_widget.composer_is_empty()
++                    && !self.chat_widget.is_agent_turn_running())
++            {
++                tui.set_inline_composer_capture(false)?;
++            } else if matches!(&event, TuiEvent::Key(_) | TuiEvent::Paste(_)) {
++                tui.set_inline_composer_capture(true)?;
++            }
++        }
++        crate::vscode_bridge::set_prompt_active(prompt_active);
+         self.observe_pointer(tui, &event);
+         if Box::pin(sidebar_close::handle(self, tui, app_server, &event)).await {
+             return Ok(AppRunControl::Continue);
+@@ -1428,7 +1448,14 @@ impl App {
+                     }
+                 }
+                 TuiEvent::Mouse(mouse) => {
+-                    self.start_right_click_paste(tui, mouse, ClipboardPasteContext::Composer);
++                    if !tui.is_alt_screen_active()
++                        && self.chat_widget.prepare_composer_mouse(mouse)
++                        && self.chat_widget.handle_composer_mouse(mouse)
++                    {
++                        tui.frame_requester().schedule_frame();
++                    } else {
++                        self.start_right_click_paste(tui, mouse, ClipboardPasteContext::Composer);
++                    }
+                 }
+                 TuiEvent::FocusLost => {}
+             }
+diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/owned_transcript.rs
+index 0a7efd36..deb4cdf7 100644
+--- a/codex-rs/tui/src/app/owned_transcript.rs
++++ b/codex-rs/tui/src/app/owned_transcript.rs
+@@ -152,7 +152,7 @@ impl App {
+         event: &TuiEvent,
+         copy: impl FnOnce(&mut tui::Tui, &str) -> Result<crate::clipboard_copy::CopyStatus, String>,
+     ) -> bool {
+-        if tui.is_owned_screen()
++        if (tui.is_owned_screen() || matches!(event, TuiEvent::Key(_)))
+             && self.overlay.is_none()
+             && !self.transcript_view.has_active_interaction()
+             && let Some((char_count, result)) = self
+diff --git a/codex-rs/tui/src/app/owned_transcript_input_tests.rs b/codex-rs/tui/src/app/owned_transcript_input_tests.rs
+index 3501e6f7..53a80382 100644
+--- a/codex-rs/tui/src/app/owned_transcript_input_tests.rs
++++ b/codex-rs/tui/src/app/owned_transcript_input_tests.rs
+@@ -1060,7 +1060,7 @@ async fn modified_arrows_and_editor_chords_resume_composer_movement() -> Result<
+                     KeyCode::Left,
+                     KeyModifiers::CONTROL | KeyModifiers::SHIFT,
+                 )],
+-                "Xalpha beta gamma",
++                "alpha beta X",
+             ),
+             (
+                 vec![
+@@ -1074,7 +1074,7 @@ async fn modified_arrows_and_editor_chords_resume_composer_movement() -> Result<
+                     KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL),
+                     KeyEvent::new(KeyCode::Char('f'), KeyModifiers::CONTROL),
+                 ],
+-                "aXlpha beta gamma",
++                "alpha beta gammaX",
+             ),
+         ] {
+             app.chat_widget
+diff --git a/codex-rs/tui/src/bottom_pane/chat_composer.rs b/codex-rs/tui/src/bottom_pane/chat_composer.rs
+index 2bb5b7d1..37ff4108 100644
+--- a/codex-rs/tui/src/bottom_pane/chat_composer.rs
++++ b/codex-rs/tui/src/bottom_pane/chat_composer.rs
+@@ -2197,7 +2197,7 @@ impl ChatComposer {
+         if self.draft.disable_paste_burst {
+             // When burst detection is disabled, treat IME/non-ASCII input as normal typing.
+             // In particular, do not retro-capture or buffer already-inserted prefix text.
+-            self.draft.textarea.input(input);
++            self.draft.textarea.composer_input(input);
+             let text_after = self.draft.textarea.text();
+             self.draft
+                 .pending_pastes
+@@ -2259,7 +2259,7 @@ impl ChatComposer {
+             self.apply_paste(pasted);
+         }
+         let elements_before = self.draft.textarea.element_payloads();
+-        self.draft.textarea.input(input);
++        self.draft.textarea.composer_input(input);
+         self.reconcile_deleted_elements(elements_before);
+         (InputResult::None, true)
+     }
+@@ -3941,7 +3941,7 @@ impl ChatComposer {
+         {
+             let started_edit = self.begin_direct_edit();
+             if self.draft.textarea.is_vim_replace_mode() {
+-                self.draft.textarea.input(input);
++                self.draft.textarea.composer_input(input);
+             }
+             self.draft.is_bash_mode = false;
+             if started_edit {
+@@ -3976,7 +3976,7 @@ impl ChatComposer {
+         } else {
+             let textarea = &mut self.draft.textarea;
+             let before_len = textarea.text().len();
+-            textarea.input(input);
++            textarea.composer_input(input);
+             // Check that the key inserted punctuation, since an editor binding can consume it.
+             if let Some((space, ch)) = completion_punctuation
+                 && textarea.text().len() == before_len + ch.len_utf8()
+@@ -9168,6 +9168,17 @@ mod tests {
+ 
+     /// Behavior: a small explicit paste inserts text directly (no placeholder), and the submitted
+     /// text matches what is visible in the textarea.
++    #[test]
++    fn ctrl_a_replaces_the_complete_prompt_through_composer_input() {
++        let (mut composer, _rx) = new_test_composer();
++        composer.insert_str("first line\nsecond line");
++        composer.draft.textarea.set_cursor(3);
++        composer.handle_key_event(KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL));
++        composer.handle_key_event(KeyEvent::new(KeyCode::Char('x'), KeyModifiers::NONE));
++        composer.flush_pending_paste_burst();
++        assert_eq!(composer.current_text(), "x");
++    }
++
+     #[test]
+     fn handle_paste_small_inserts_text() {
+         use crossterm::event::KeyCode;
+diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/mouse.rs b/codex-rs/tui/src/bottom_pane/chat_composer/mouse.rs
+index e706fec3..c75ed16c 100644
+--- a/codex-rs/tui/src/bottom_pane/chat_composer/mouse.rs
++++ b/codex-rs/tui/src/bottom_pane/chat_composer/mouse.rs
+@@ -61,6 +61,32 @@ impl ChatComposer {
+         event: &TuiEvent,
+         copy: impl FnOnce(&str) -> Result<CopyStatus, String>,
+     ) -> Option<(usize, Result<CopyStatus, String>)> {
++        #[cfg(windows)]
++        if matches!(event, TuiEvent::Key(key) if key.kind == KeyEventKind::Press
++            && key.modifiers == KeyModifiers::CONTROL && key.code == KeyCode::Char('x'))
++            && self.draft.input_enabled
++            && !self.blocks_direct_input
++            && !self.query_active()
++        {
++            self.flush_pending_paste_burst();
++            let range = self.draft.textarea.mouse_selection_range()?;
++            let text = &self.draft.textarea.text()[range.clone()];
++            let count = text.chars().count();
++            let result =
++                arboard::Clipboard::new().and_then(|mut clipboard| clipboard.set_text(text));
++            if let Err(error) = result {
++                return Some((count, Err(error.to_string())));
++            }
++            let started = self.begin_direct_edit();
++            let elements = self.draft.textarea.element_payloads();
++            self.draft.textarea.replace_range(range, "");
++            self.reconcile_deleted_elements(elements);
++            if started {
++                self.finish_edit();
++            }
++            self.sync_popups();
++            return Some((count, Ok(CopyStatus::Confirmed)));
++        }
+         let copy_requested = matches!(event, TuiEvent::Key(key) if crate::text_selection::is_copy_key(*key))
+             || matches!(event, TuiEvent::Mouse(mouse)
+                     if mouse.kind == MouseEventKind::Down(MouseButton::Right)
+diff --git a/codex-rs/tui/src/bottom_pane/startup.rs b/codex-rs/tui/src/bottom_pane/startup.rs
+index 993479ed..11640240 100644
+--- a/codex-rs/tui/src/bottom_pane/startup.rs
++++ b/codex-rs/tui/src/bottom_pane/startup.rs
+@@ -6,7 +6,9 @@
+ 
+ use std::time::Instant;
+ 
++use crossterm::event::KeyCode;
+ use crossterm::event::KeyEvent;
++use crossterm::event::KeyModifiers;
+ 
+ use super::BottomPane;
+ use super::ComposerDraftSnapshot;
+@@ -41,7 +43,11 @@ impl BottomPane {
+     /// Return whether a key is bound only to local startup-safe text editing.
+     pub(crate) fn is_safe_startup_editor_key(&self, key_event: KeyEvent) -> bool {
+         let editor = &self.keymap.editor;
+-        self.is_startup_cursor_key(key_event)
++        (matches!(
++            key_event.code,
++            KeyCode::Home | KeyCode::End | KeyCode::Left | KeyCode::Right
++        ) && key_event.modifiers.contains(KeyModifiers::CONTROL))
++            || self.is_startup_cursor_key(key_event)
+             || [
+                 &editor.insert_newline,
+                 &editor.delete_backward,
+diff --git a/codex-rs/tui/src/bottom_pane/textarea.rs b/codex-rs/tui/src/bottom_pane/textarea.rs
+index 5955f861..918c8a11 100644
+--- a/codex-rs/tui/src/bottom_pane/textarea.rs
++++ b/codex-rs/tui/src/bottom_pane/textarea.rs
+@@ -653,6 +653,14 @@ impl TextArea {
+         self.end_of_line(self.cursor_pos)
+     }
+ 
++    pub(super) fn composer_input(&mut self, event: KeyEvent) {
++        if !self.vim_enabled && self.desktop_navigation(event) {
++            self.last_click = None;
++            return;
++        }
++        self.input(event);
++    }
++
+     pub fn input(&mut self, event: KeyEvent) {
+         // Only process key presses or repeats; ignore releases to avoid inserting
+         // characters on key-up events when modifiers are no longer reported.
+@@ -2514,6 +2522,18 @@ mod tests {
+         assert_eq!(t.text(), "a你");
+     }
+ 
++    #[test]
++    fn ctrl_a_selects_the_multiline_draft_and_typing_replaces_it() {
++        let mut t = TextArea::new();
++        t.insert_str("first\n日本語");
++        t.set_cursor(2);
++        t.composer_input(KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL));
++        assert_eq!(t.mouse_selection_range(), Some(0..t.text().len()));
++        t.input(KeyEvent::new(KeyCode::Char('x'), KeyModifiers::NONE));
++        assert_eq!(t.text(), "x");
++        assert_eq!(t.mouse_selection_range(), None);
++    }
++
+     #[test]
+     fn delete_backward_and_forward_edges() {
+         let mut t = ta_with("abc");
+diff --git a/codex-rs/tui/src/bottom_pane/textarea/mouse.rs b/codex-rs/tui/src/bottom_pane/textarea/mouse.rs
+index 4cbba8b0..989828d7 100644
+--- a/codex-rs/tui/src/bottom_pane/textarea/mouse.rs
++++ b/codex-rs/tui/src/bottom_pane/textarea/mouse.rs
+@@ -19,6 +19,67 @@ pub(super) struct MouseSelection {
+ }
+ 
+ impl TextArea {
++    pub(super) fn desktop_navigation(&mut self, event: KeyEvent) -> bool {
++        if !matches!(event.kind, KeyEventKind::Press | KeyEventKind::Repeat) {
++            return false;
++        }
++        let ctrl = event.modifiers == KeyModifiers::CONTROL;
++        let shift = event.modifiers == KeyModifiers::SHIFT;
++        let ctrl_shift = event.modifiers == (KeyModifiers::CONTROL | KeyModifiers::SHIFT);
++        let anchor = self.mouse_selection.as_ref().map_or(self.cursor_pos, |s| {
++            if self.cursor_pos <= s.origin.start {
++                s.origin.end
++            } else {
++                s.origin.start
++            }
++        });
++        let select_all = ctrl && event.code == KeyCode::Char('a');
++        if select_all {
++            self.set_cursor(self.text.len());
++        } else if shift || ctrl_shift {
++            match event.code {
++                KeyCode::Left if ctrl_shift => self.set_cursor(self.beginning_of_previous_word()),
++                KeyCode::Right if ctrl_shift => self.set_cursor(self.end_of_next_word()),
++                KeyCode::Left => self.move_cursor_left(),
++                KeyCode::Right => self.move_cursor_right(),
++                KeyCode::Up if shift => self.move_cursor_up(),
++                KeyCode::Down if shift => self.move_cursor_down(),
++                KeyCode::Home if ctrl_shift => self.set_cursor(0),
++                KeyCode::End if ctrl_shift => self.set_cursor(self.text.len()),
++                KeyCode::Home => self.move_cursor_to_beginning_of_line(false),
++                KeyCode::End => self.move_cursor_to_end_of_line(false),
++                _ => return false,
++            }
++        } else {
++            match event.code {
++                KeyCode::Home if ctrl => self.set_cursor(0),
++                KeyCode::End if ctrl => self.set_cursor(self.text.len()),
++                KeyCode::Left | KeyCode::Right if event.modifiers.is_empty() => {
++                    let Some(range) = self.mouse_selection_range() else {
++                        return false;
++                    };
++                    self.set_cursor(if event.code == KeyCode::Left {
++                        range.start
++                    } else {
++                        range.end
++                    });
++                }
++                _ => return false,
++            }
++            return true;
++        }
++        let anchor = if select_all { 0 } else { anchor };
++        self.mouse_selection = (self.cursor_pos != anchor).then_some(MouseSelection {
++            pending_copy: None,
++            primary_owner: None,
++            origin: anchor..anchor,
++            unit: SelectionUnit::Character,
++            dragging: false,
++            moved: true,
++        });
++        true
++    }
++
+     pub(in crate::bottom_pane) fn defer_copy(&mut self, id: u64) {
+         if let Some(range) = self.mouse_selection_range()
+             && let Some(selection) = &mut self.mouse_selection
+diff --git a/codex-rs/tui/src/chatwidget/interaction.rs b/codex-rs/tui/src/chatwidget/interaction.rs
+index fa88da23..a0712d38 100644
+--- a/codex-rs/tui/src/chatwidget/interaction.rs
++++ b/codex-rs/tui/src/chatwidget/interaction.rs
+@@ -252,7 +252,16 @@ impl ChatWidget {
+             return KeyEventAction::None;
+         }
+ 
+-        if self.handle_reasoning_shortcut(key_event) || self.handle_permission_shortcut(key_event) {
++        let extending_selection = !self.composer_is_empty()
++            && key_event.modifiers == KeyModifiers::SHIFT
++            && matches!(
++                key_event.code,
++                KeyCode::Left | KeyCode::Right | KeyCode::Up | KeyCode::Down
++            );
++        if !extending_selection
++            && (self.handle_reasoning_shortcut(key_event)
++                || self.handle_permission_shortcut(key_event))
++        {
+             self.bottom_pane.clear_quit_shortcut_hint();
+             self.quit_shortcut_expires_at = None;
+             self.quit_shortcut_key = None;
+@@ -301,6 +310,7 @@ impl ChatWidget {
+         }
+ 
+         if key_event.kind == KeyEventKind::Press
++            && !extending_selection
+             && self.chat_keymap.edit_queued_message.is_pressed(key_event)
+             && (self.has_queued_follow_up_messages() || self.pending_image_submission.is_some())
+             && self.bottom_pane.no_modal_or_popup_active()
+diff --git a/codex-rs/tui/src/lib.rs b/codex-rs/tui/src/lib.rs
+index cb2bcc87..668179ed 100644
+--- a/codex-rs/tui/src/lib.rs
++++ b/codex-rs/tui/src/lib.rs
+@@ -279,6 +279,7 @@ mod updates_cache;
+ mod user_prompt;
+ mod version;
+ mod vim_search;
++mod vscode_bridge;
+ mod width;
+ mod windows_sandbox;
+ mod workspace_command;
+diff --git a/codex-rs/tui/src/startup_draft.rs b/codex-rs/tui/src/startup_draft.rs
+index 49244cc7..36afc05c 100644
+--- a/codex-rs/tui/src/startup_draft.rs
++++ b/codex-rs/tui/src/startup_draft.rs
+@@ -531,6 +531,7 @@ impl StartupDraftPump {
+             tui.frame_requester()
+                 .schedule_frame_in(ChatComposer::recommended_paste_flush_delay());
+         }
++        crate::vscode_bridge::set_prompt_active(self.bottom_pane.composer_input_enabled());
+         self.bottom_pane.pre_draw_tick();
+         let owned = tui.is_owned_screen();
+         let owned_layout = layout::OwnedStartupLayout::new(self);
+diff --git a/codex-rs/tui/src/startup_draft_tests.rs b/codex-rs/tui/src/startup_draft_tests.rs
+index 64d2928b..4a1d2cb3 100644
+--- a/codex-rs/tui/src/startup_draft_tests.rs
++++ b/codex-rs/tui/src/startup_draft_tests.rs
+@@ -668,7 +668,10 @@ fn startup_draft_allows_local_editor_shortcuts_without_startup_actions() {
+             KeyEvent::new(KeyCode::Char('b'), KeyModifiers::ALT),
+             "first ".len(),
+         ),
+-        (KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL), 0),
++        (
++            KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL),
++            "first second".len(),
++        ),
+         (
+             KeyEvent::new(KeyCode::Char('e'), KeyModifiers::CONTROL),
+             "first second".len(),
+diff --git a/codex-rs/tui/src/tui.rs b/codex-rs/tui/src/tui.rs
+index 6bd03f23..5fc5dd05 100644
+--- a/codex-rs/tui/src/tui.rs
++++ b/codex-rs/tui/src/tui.rs
+@@ -136,6 +136,8 @@ fn should_emit_notification(condition: NotificationCondition, terminal_focused:
+ 
+ impl Drop for Tui {
+     fn drop(&mut self) {
++        let _ = self.set_inline_composer_capture(false);
++        crate::vscode_bridge::finish();
+         if let Err(err) = self.clear_ambient_pet_image() {
+             tracing::debug!(error = %err, "failed to clear ambient pet image on TUI drop");
+         }
+@@ -761,6 +763,7 @@ pub struct Tui {
+     // Keep the alternate screen alive when an overlay closes.
+     owned_screen: bool,
+     pub(crate) mouse_capture: MouseCapture,
++    inline_composer_capture: bool,
+     // Copies and native ownership survive closing an overlay or startup picker.
+     pub(crate) clipboard: crate::clipboard_copy::worker::ClipboardWorker,
+     // Keeps unmanaged process stderr writes out of the inline viewport.
+@@ -838,6 +841,7 @@ impl Tui {
+             alt_screen_enabled: true,
+             owned_screen: false,
+             mouse_capture: MouseCapture::Inherit,
++            inline_composer_capture: false,
+             clipboard: Default::default(),
+             _stderr_guard: stderr_guard,
+         }
+@@ -915,6 +919,15 @@ impl Tui {
+ 
+     /// Retain the mouse capture policy across temporary editor, suspend and panic handoffs.
+     /// Actual terminal capture is tracked by AlternateScreen so partial writes remain cleanable.
++    pub(crate) fn set_inline_composer_capture(&mut self, active: bool) -> Result<()> {
++        if self.inline_composer_capture != active {
++            #[cfg(all(windows, not(test)))]
++            windows_console::set_mouse_capture(active)?;
++            self.inline_composer_capture = active;
++        }
++        Ok(())
++    }
++
+     pub(crate) fn set_mouse_capture(&mut self, mouse_capture: MouseCapture) -> Result<()> {
+         if self.alt_screen_enabled && self.is_alt_screen_active() {
+             self.mouse_capture.apply(
+diff --git a/codex-rs/tui/src/tui/windows_console.rs b/codex-rs/tui/src/tui/windows_console.rs
+index 8b56d0a0..aa5719b5 100644
+--- a/codex-rs/tui/src/tui/windows_console.rs
++++ b/codex-rs/tui/src/tui/windows_console.rs
+@@ -1,3 +1,4 @@
++const ENABLE_MOUSE_INPUT: u32 = 0x0010;
+ const ENABLE_VIRTUAL_TERMINAL_INPUT: u32 = 0x0200;
+ 
+ #[derive(Clone, Copy)]
+@@ -10,6 +11,14 @@ pub(super) fn input_record_mode(mode: u32) -> u32 {
+     mode & !ENABLE_VIRTUAL_TERMINAL_INPUT
+ }
+ 
++pub(super) fn mouse_capture_mode(mode: u32, enabled: bool) -> u32 {
++    if enabled {
++        mode | ENABLE_MOUSE_INPUT
++    } else {
++        mode & !ENABLE_MOUSE_INPUT
++    }
++}
++
+ pub(super) fn restored_input_mode(mode: u32, original: VirtualTerminalInput) -> u32 {
+     match original {
+         VirtualTerminalInput::Enabled => mode | ENABLE_VIRTUAL_TERMINAL_INPUT,
+@@ -41,6 +50,21 @@ fn current_input_mode() -> Option<(windows_sys::Win32::Foundation::HANDLE, u32)>
+     Some((handle, mode))
+ }
+ 
++#[cfg(all(windows, not(test)))]
++pub(super) fn set_mouse_capture(enabled: bool) -> std::io::Result<()> {
++    use windows_sys::Win32::System::Console::SetConsoleMode;
++
++    let Some((handle, mode)) = current_input_mode() else {
++        return Ok(());
++    };
++    let requested_mode = mouse_capture_mode(mode, enabled);
++    if requested_mode != mode && unsafe { SetConsoleMode(handle, requested_mode) } == 0 {
++        return Err(std::io::Error::last_os_error());
++    }
++
++    Ok(())
++}
++
+ #[cfg(windows)]
+ pub(super) fn set_input_record_mode() -> std::io::Result<()> {
+     use windows_sys::Win32::System::Console::SetConsoleMode;
+diff --git a/codex-rs/tui/src/vscode_bridge.rs b/codex-rs/tui/src/vscode_bridge.rs
+new file mode 100644
+index 00000000..4731ae50
+--- /dev/null
++++ b/codex-rs/tui/src/vscode_bridge.rs
+@@ -0,0 +1,94 @@
++#[cfg(windows)]
++mod platform {
++    use std::path::PathBuf;
++    use std::sync::Mutex;
++    use std::sync::OnceLock;
++
++    use windows_sys::Win32::System::Console::GetConsoleProcessList;
++
++    static LAST_ACTIVE: Mutex<Option<bool>> = Mutex::new(None);
++    static RECORD: OnceLock<Mutex<Option<PathBuf>>> = OnceLock::new();
++
++    fn record_path() -> Option<PathBuf> {
++        if std::env::var("TERM_PROGRAM").ok().as_deref() != Some("vscode") {
++            return None;
++        }
++        let root = PathBuf::from(std::env::var_os("LOCALAPPDATA")?)
++            .join("CodexCLIEditor")
++            .join("vscode-bridge");
++        std::fs::create_dir_all(&root).ok()?;
++        Some(root.join(format!("{}.json", std::process::id())))
++    }
++
++    fn console_process_ids() -> Vec<u32> {
++        let mut ids = vec![0_u32; 32];
++        loop {
++            let count =
++                unsafe { GetConsoleProcessList(ids.as_mut_ptr(), ids.len() as u32) } as usize;
++            if count == 0 {
++                return vec![std::process::id()];
++            }
++            if count <= ids.len() {
++                ids.truncate(count);
++                ids.sort_unstable();
++                ids.dedup();
++                return ids;
++            }
++            ids.resize(count, 0);
++        }
++    }
++
++    pub(super) fn set_prompt_active(active: bool) {
++        let slot = RECORD.get_or_init(|| Mutex::new(record_path()));
++        let Ok(path) = slot.lock() else {
++            return;
++        };
++        let Some(path) = path.as_ref() else {
++            return;
++        };
++        let Ok(mut last) = LAST_ACTIVE.lock() else {
++            return;
++        };
++        if *last == Some(active) && path.exists() {
++            return;
++        }
++        let ids = console_process_ids()
++            .into_iter()
++            .map(|pid| pid.to_string())
++            .collect::<Vec<_>>()
++            .join(",");
++        let record = format!(
++            "{{\"schema_version\":1,\"pid\":{},\"console_pids\":[{}],\"prompt_active\":{}}}\n",
++            std::process::id(),
++            ids,
++            active
++        );
++        if std::fs::write(path, record).is_ok() {
++            *last = Some(active);
++        }
++    }
++
++    pub(super) fn finish() {
++        let Some(slot) = RECORD.get() else {
++            return;
++        };
++        let Ok(path) = slot.lock() else {
++            return;
++        };
++        if let Some(path) = path.as_ref() {
++            let _ = std::fs::remove_file(path);
++        }
++    }
++}
++
++pub(crate) fn set_prompt_active(active: bool) {
++    #[cfg(windows)]
++    platform::set_prompt_active(active);
++    #[cfg(not(windows))]
++    let _ = active;
++}
++
++pub(crate) fn finish() {
++    #[cfg(windows)]
++    platform::finish();
++}

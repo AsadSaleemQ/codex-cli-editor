@@ -7,4 +7,4 @@ Copyright (c) 2023-2025 The Ratatui Developers
 Codex CLI Editor modifications
 Copyright 2026 Asad Saleem
 
-This distribution modifies OpenAI Codex. The modifications add desktop-style terminal composer input, including mouse routing and selection, touchpad/wheel scrolling, clipboard editing, undo/redo, rendering changes, and associated tests. The complete source-level changes are identified by patches/codex/rust-v0.148.0/0001-desktop-composer.patch and THIRD_PARTY_NOTICES.md.
+This distribution modifies OpenAI Codex. The modifications add desktop-style terminal composer input, including mouse routing and selection, touchpad/wheel scrolling, clipboard editing, undo/redo, rendering changes, and associated tests. The complete source-level changes are identified by patches/codex/rust-v0.172.0/0001-desktop-composer.patch and THIRD_PARTY_NOTICES.md.

@@ -4,16 +4,16 @@ param(
     [Parameter(Mandatory)] [uint64] $ManifestSequence,
     [Parameter(Mandatory)] [uint64] $ExpiresUnix,
     [uint64] $IssuedUnix = 0,
-    [string] $CodexVersion = '0.154.0',
+    [ValidateSet('0.172.0')] [string] $CodexVersion = '0.172.0',
     [string] $Repository = 'AsadSaleemQ/codex-cli-editor',
     [string[]] $VsCodeVersions = @('1.134.0', '1.135.0', '1.137.0')
 )
 
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$upstreamCommit = '6b9826e3aa83b1a5947db50f4332cb9c65f1b340'
-$patch = Join-Path $root 'patches\codex\rust-v0.154.0\0001-desktop-composer.patch'
-$expectedPatchSha256 = '26168522ab8f1a1fb50817ea674bd5c23f357ca49662d0db77902acc819e8d81'
+$upstreamCommit = '3d86e43b075adeba2193ec5c22ac92f55afd82e6'
+$patch = Join-Path $root 'patches\codex\rust-v0.172.0\0001-desktop-composer.patch'
+$expectedPatchSha256 = '82e78427c8623ab3f9bcbeaa9d93856f6caad08fca2b0b72fd9985023f9b974a'
 $work = Join-Path $root ".work\release-$Version"
 $upstream = Join-Path $work 'codex'
 $artifacts = Join-Path $root '.artifacts'
@@ -62,7 +62,6 @@ if ($LASTEXITCODE -ne 0) { throw 'patch application failed' }
 & git -C $upstream diff --check
 if ($LASTEXITCODE -ne 0) { throw 'patched tree has whitespace errors' }
 & (Join-Path $root 'scripts\refresh_codex_lock.ps1') -UpstreamRoot $upstream
-& (Join-Path $root 'scripts\prepare_i18n_embed_fl.ps1') -UpstreamRoot $upstream -WorkRoot $work
 $rustyV8 = & (Join-Path $root 'scripts\prepare_rusty_v8.ps1') `
     -UpstreamRoot $upstream `
     -DestinationRoot (Join-Path $work 'rusty-v8')
@@ -82,7 +81,7 @@ $env:CARGO_ENCODED_RUSTFLAGS = (@(
     '-C',
     'target-feature=+crt-static'
 ) + $deterministicRustflags) -join [char]0x1f
-& cargo +1.95.0-x86_64-pc-windows-msvc build --locked --release --bins --manifest-path (Join-Path $root 'Cargo.toml')
+& cargo +1.99.1-x86_64-pc-windows-msvc build --locked --release --bins --manifest-path (Join-Path $root 'Cargo.toml')
 if ($LASTEXITCODE -ne 0) { throw 'dispatcher build failed' }
 $env:RUSTY_V8_ARCHIVE = $rustyV8.ArchivePath
 $env:RUSTY_V8_SRC_BINDING_PATH = $rustyV8.BindingPath
@@ -92,7 +91,7 @@ $env:CARGO_ENCODED_RUSTFLAGS = (@(
     '-C',
     'target-feature=+crt-static'
 ) + $deterministicRustflags) -join [char]0x1f
-& cargo +1.95.0-x86_64-pc-windows-msvc build --locked --release --manifest-path (Join-Path $upstream 'codex-rs\Cargo.toml') -p codex-cli -p codex-code-mode-host
+& cargo +1.99.1-x86_64-pc-windows-msvc build --locked --release --manifest-path (Join-Path $upstream 'codex-rs\Cargo.toml') -p codex-cli -p codex-code-mode-host
 if ($LASTEXITCODE -ne 0) { throw 'patched Codex build failed' }
 
 [IO.Directory]::CreateDirectory($bundle) | Out-Null
@@ -112,9 +111,9 @@ foreach ($entry in $files.GetEnumerator()) {
     if (-not (Test-Path -LiteralPath $entry.Value -PathType Leaf)) { throw "Missing release artifact: $($entry.Value)" }
     [IO.File]::Copy($entry.Value, (Join-Path $bundle $entry.Key), $false)
 }
-& cargo +1.95.0-x86_64-pc-windows-msvc fetch --locked --manifest-path (Join-Path $root 'Cargo.toml')
+& cargo +1.99.1-x86_64-pc-windows-msvc fetch --locked --manifest-path (Join-Path $root 'Cargo.toml')
 if ($LASTEXITCODE -ne 0) { throw 'dispatcher dependency fetch failed before frozen license generation' }
-& cargo +1.95.0-x86_64-pc-windows-msvc fetch --locked --manifest-path (Join-Path $upstream 'codex-rs\Cargo.toml')
+& cargo +1.99.1-x86_64-pc-windows-msvc fetch --locked --manifest-path (Join-Path $upstream 'codex-rs\Cargo.toml')
 if ($LASTEXITCODE -ne 0) { throw 'upstream dependency fetch failed before frozen license generation' }
 $licenseReports = @(
     @{ Manifest = (Join-Path $root 'Cargo.toml'); Output = 'THIRD_PARTY_LICENSES_CODEX_CLI_EDITOR.html' },
@@ -133,8 +132,8 @@ foreach ($name in $distributionDocs) {
     if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing distribution notice: $source" }
     [IO.File]::Copy($source, (Join-Path $bundle $name), $false)
 }
-$sysroot = (& rustc +1.95.0-x86_64-pc-windows-msvc --print sysroot).Trim()
-$hostLine = & rustc +1.95.0-x86_64-pc-windows-msvc -vV | Where-Object { $_ -like 'host:*' }
+$sysroot = (& rustc +1.99.1-x86_64-pc-windows-msvc --print sysroot).Trim()
+$hostLine = & rustc +1.99.1-x86_64-pc-windows-msvc -vV | Where-Object { $_ -like 'host:*' }
 $hostTriple = ($hostLine -split ':', 2)[1].Trim()
 $llvmTools = Join-Path $sysroot "lib\rustlib\$hostTriple\bin"
 $strip = @('llvm-strip.exe', 'llvm-objcopy.exe') |
@@ -198,8 +197,8 @@ $manifest = [ordered]@{
 $manifestPath = Join-Path $bundle 'compatibility-manifest.json'
 [IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 8) + "`n", (New-Object Text.UTF8Encoding($false)))
 
-$dispatcherMetadata = (& cargo +1.95.0-x86_64-pc-windows-msvc metadata --locked --format-version 1 --manifest-path (Join-Path $root 'Cargo.toml') | ConvertFrom-Json)
-$upstreamMetadata = (& cargo +1.95.0-x86_64-pc-windows-msvc metadata --locked --format-version 1 --manifest-path (Join-Path $upstream 'codex-rs\Cargo.toml') | ConvertFrom-Json)
+$dispatcherMetadata = (& cargo +1.99.1-x86_64-pc-windows-msvc metadata --locked --format-version 1 --manifest-path (Join-Path $root 'Cargo.toml') | ConvertFrom-Json)
+$upstreamMetadata = (& cargo +1.99.1-x86_64-pc-windows-msvc metadata --locked --format-version 1 --manifest-path (Join-Path $upstream 'codex-rs\Cargo.toml') | ConvertFrom-Json)
 $components = @($dispatcherMetadata.packages + $upstreamMetadata.packages) |
     Sort-Object name, version, source -Unique |
     ForEach-Object {

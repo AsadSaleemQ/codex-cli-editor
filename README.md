@@ -111,6 +111,8 @@ Updates are explicit and bundle-based; startup never blocks on a network downloa
 | Terminal | VS Code integrated terminal on the validated Windows baseline. |
 | Release toolchain | Rust 1.95.0 with Windows MSVC. |
 
+The next editor build (0.2.3) targets Codex 0.172.0. Using it requires a signed 0.2.3 bundle.
+
 Validated release combinations:
 
 | Codex CLI Editor | Native Codex | Microsoft VS Code | Validation |

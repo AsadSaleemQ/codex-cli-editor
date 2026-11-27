@@ -39,7 +39,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install pinned Rust toolchain
         shell: pwsh
-        run: rustup toolchain install 1.95.0-x86_64-pc-windows-msvc --profile minimal --component rustfmt,clippy
+        run: rustup toolchain install 1.99.1-x86_64-pc-windows-msvc --profile minimal --component rustfmt,clippy
       - name: Test deterministic VS Code bridge
         shell: pwsh
         run: |
@@ -48,13 +48,13 @@ jobs:
           .\scripts\build_vscode_extension.ps1 -OutputPath "$env:RUNNER_TEMP\bridge-b.vsix"
           if ((Get-FileHash "$env:RUNNER_TEMP\bridge-a.vsix").Hash -ne (Get-FileHash "$env:RUNNER_TEMP\bridge-b.vsix").Hash) { throw 'VSIX build is not reproducible' }
       - name: Format
-        run: cargo +1.95.0-x86_64-pc-windows-msvc fmt --all -- --check
+        run: cargo +1.99.1-x86_64-pc-windows-msvc fmt --all -- --check
       - name: Clippy
-        run: cargo +1.95.0-x86_64-pc-windows-msvc clippy --locked --all-targets -- -D warnings
+        run: cargo +1.99.1-x86_64-pc-windows-msvc clippy --locked --all-targets -- -D warnings
       - name: Test
-        run: cargo +1.95.0-x86_64-pc-windows-msvc test --locked -j 1
+        run: cargo +1.99.1-x86_64-pc-windows-msvc test --locked -j 1
       - name: Release build
-        run: cargo +1.95.0-x86_64-pc-windows-msvc build --locked --release --bins
+        run: cargo +1.99.1-x86_64-pc-windows-msvc build --locked --release --bins
       - name: Exercise isolated release finalizer
         shell: pwsh
         run: .\scripts\check_release_finalizer.ps1 -SignerPath target\release\sign_release.exe
@@ -69,20 +69,20 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: codex-patch-6b9826e3aa83b1a5947db50f4332cb9c65f1b340-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          key: codex-patch-3d86e43b075adeba2193ec5c22ac92f55afd82e6-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
       - name: Check patch against pinned upstream
         shell: pwsh
         run: |
           $upstream = Join-Path $env:RUNNER_TEMP 'codex-upstream'
-          $patch = "$env:GITHUB_WORKSPACE\patches\codex\rust-v0.154.0\0001-desktop-composer.patch"
-          $expected = '26168522ab8f1a1fb50817ea674bd5c23f357ca49662d0db77902acc819e8d81'
+          $patch = "$env:GITHUB_WORKSPACE\patches\codex\rust-v0.172.0\0001-desktop-composer.patch"
+          $expected = '82e78427c8623ab3f9bcbeaa9d93856f6caad08fca2b0b72fd9985023f9b974a'
           if ((Get-FileHash -Algorithm SHA256 -LiteralPath $patch).Hash.ToLowerInvariant() -ne $expected) { throw 'patch hash mismatch' }
           git clone --filter=blob:none https://github.com/openai/codex.git $upstream
-          git -C $upstream checkout 6b9826e3aa83b1a5947db50f4332cb9c65f1b340
-          git -C $upstream apply --check "$env:GITHUB_WORKSPACE\patches\codex\rust-v0.154.0\0001-desktop-composer.patch"
+          git -C $upstream checkout 3d86e43b075adeba2193ec5c22ac92f55afd82e6
+          git -C $upstream apply --check "$env:GITHUB_WORKSPACE\patches\codex\rust-v0.172.0\0001-desktop-composer.patch"
       - name: Install pinned Rust toolchain
         shell: pwsh
-        run: rustup toolchain install 1.95.0-x86_64-pc-windows-msvc --profile minimal --component rustfmt
+        run: rustup toolchain install 1.99.1-x86_64-pc-windows-msvc --profile minimal --component rustfmt
       - name: Validate pinned upstream lock refresh
         shell: pwsh
         run: |
@@ -97,7 +97,7 @@ jobs:
         shell: pwsh
         run: |
           $upstream = Join-Path $env:RUNNER_TEMP 'codex-upstream'
-          $patch = "$env:GITHUB_WORKSPACE\patches\codex\rust-v0.154.0\0001-desktop-composer.patch"
+          $patch = "$env:GITHUB_WORKSPACE\patches\codex\rust-v0.172.0\0001-desktop-composer.patch"
           git -C $upstream apply $patch
           if ($LASTEXITCODE -ne 0) { throw 'patch application failed' }
           git -C $upstream diff --check
@@ -105,26 +105,23 @@ jobs:
           $bridge = Join-Path $upstream 'codex-rs\tui\src\vscode_bridge.rs'
           $textarea = Join-Path $upstream 'codex-rs\tui\src\bottom_pane\textarea.rs'
           if (-not (Test-Path -LiteralPath $bridge -PathType Leaf)) { throw 'patched VS Code bridge source is missing' }
-          if (-not (Select-String -LiteralPath $textarea -SimpleMatch 'fn control_home_end_and_shift_variants_use_document_boundaries' -Quiet)) { throw 'patched boundary-key regression test is missing' }
+          if (-not (Select-String -LiteralPath $textarea -SimpleMatch 'fn ctrl_a_selects_the_multiline_draft_and_typing_replaces_it' -Quiet)) { throw 'patched boundary-key regression test is missing' }
           $manifest = Join-Path $upstream 'codex-rs\Cargo.toml'
-          cargo +1.95.0-x86_64-pc-windows-msvc clean --manifest-path $manifest -p codex-tui
+          cargo +1.99.1-x86_64-pc-windows-msvc clean --manifest-path $manifest -p codex-tui
           if ($LASTEXITCODE -ne 0) { throw 'unable to invalidate the clean-baseline codex-tui artifacts' }
       - name: Probe required code-mode host package
         shell: pwsh
         run: |
           $upstream = Join-Path $env:RUNNER_TEMP 'codex-upstream'
-          .\scripts\prepare_i18n_embed_fl.ps1 `
-            -UpstreamRoot $upstream `
-            -WorkRoot (Join-Path $env:RUNNER_TEMP 'deterministic-dependency')
           $v8 = .\scripts\prepare_rusty_v8.ps1 `
             -UpstreamRoot $upstream `
             -DestinationRoot (Join-Path $env:RUNNER_TEMP 'rusty-v8')
           $env:RUSTY_V8_ARCHIVE = $v8.ArchivePath
           $env:RUSTY_V8_SRC_BINDING_PATH = $v8.BindingPath
           $manifest = Join-Path $upstream 'codex-rs\Cargo.toml'
-          cargo +1.95.0-x86_64-pc-windows-msvc check --locked --manifest-path $manifest -p codex-code-mode-host
+          cargo +1.99.1-x86_64-pc-windows-msvc check --locked --manifest-path $manifest -p codex-code-mode-host
       - name: Compare full patched TUI suite with unpatched Windows baseline
         shell: pwsh
         run: |
           $upstream = Join-Path $env:RUNNER_TEMP 'codex-upstream'
-          .\scripts\check_codex_tui_baseline.ps1 -UpstreamRoot $upstream -ExpectedPassed 4259
+          .\scripts\check_codex_tui_baseline.ps1 -UpstreamRoot $upstream -AddedTests 2

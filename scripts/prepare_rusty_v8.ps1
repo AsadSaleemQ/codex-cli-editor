@@ -7,17 +7,17 @@ param(
 $ErrorActionPreference = 'Stop'
 $upstream = [IO.Path]::GetFullPath($UpstreamRoot)
 $destination = [IO.Path]::GetFullPath($DestinationRoot)
-$version = '150.4.0'
+$version = '152.2.0'
 $target = 'x86_64-pc-windows-msvc'
 $profile = 'ptrcomp_sandbox_release'
 $releaseTag = "rusty-v8-v$version"
 $baseUrl = "https://github.com/openai/codex/releases/download/$releaseTag"
 $archiveName = "rusty_v8_${profile}_${target}.lib.gz"
 $bindingName = "src_binding_${profile}_${target}.rs"
-$archiveSha256 = '732ec5da4243aa166799780c8519a5eea6f32f6e47657a323342794dc3c239d6'
-$bindingSha256 = 'dabf78ba1faac127660db9862b1d0354175c71b8db2d4fcb5bacbd9c93576b16'
-$archiveBytes = 40897677L
-$bindingBytes = 40354L
+$archiveSha256 = 'cd829415695b30ad61b306b23a381e11276f14bb0b46815ac5ed8b96711d002d'
+$bindingSha256 = '572ed16ff09bb7944f4b35c659ff62dcd3faf43a0351e3f94f011e01b2f92a62'
+$archiveBytes = 41630799L
+$bindingBytes = 39400L
 
 function Get-Sha256([string] $Path) {
     $stream = [IO.File]::OpenRead($Path)

@@ -15,6 +15,8 @@ Enhanced Codex requires an exact signed compatibility match. An explicit unsuppo
 
 ## Continuous validation
 
+The 0.172.0 candidate runs the clean and patched suites against the same upstream commit. The patched suite must preserve the clean failure list and ignored count and pass both additional Ctrl+A regression tests.
+
 Every push and pull request must pass:
 
 - repository publication-boundary and credential checks;
@@ -33,7 +35,7 @@ Current results are visible in [GitHub Actions](https://github.com/AsadSaleemQ/c
 
 ## Local checks
 
-With Rust 1.95 and the Windows MSVC toolchain installed:
+For the 0.172.0 candidate, use Rust 1.99.1 and the Windows MSVC toolchain installed:
 
 ```powershell
 cargo fmt --all -- --check

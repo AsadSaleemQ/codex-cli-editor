@@ -49,7 +49,7 @@ A dispatcher-changing update must be launched from the new external bundle. This
 
 ## Build
 
-Requirements: Git, Rust 1.95.0, and the Windows MSVC toolchain. The local GNU/LLVM toolchain can build the patched Codex but Rusty V8 does not publish the matching code-mode-host archive; the release workflow therefore uses `x86_64-pc-windows-msvc`.
+Requirements: Git, Rust 1.99.1, and the Windows MSVC toolchain. The local GNU/LLVM toolchain can build the patched Codex but Rusty V8 does not publish the matching code-mode-host archive; the release workflow therefore uses `x86_64-pc-windows-msvc`.
 
 ```powershell
 cargo fmt --all -- --check
@@ -65,12 +65,12 @@ To reproduce the upstream patch manually:
 
 ```powershell
 git clone https://github.com/openai/codex.git upstream-codex
-git -C upstream-codex checkout 3ba0f711642a888aec92a611a3f3b2211157ff89
-git -C upstream-codex apply ..\codex-cli-editor\patches\codex\rust-v0.148.0\0001-desktop-composer.patch
+git -C upstream-codex checkout 3d86e43b075adeba2193ec5c22ac92f55afd82e6
+git -C upstream-codex apply ..\codex-cli-editor\patches\codex\rust-v0.172.0\0001-desktop-composer.patch
 cargo build --manifest-path upstream-codex\codex-rs\Cargo.toml --release -j 1 -p codex-cli -p codex-code-mode-host
 ```
 
-Release dispatches are serialized, and preparation requires the requested manifest sequence to exceed every existing release or draft manifest sequence. GitHub performs two unsigned builds with normalized paths and deterministic timestamps, applies the upstream-maintained deterministic argument-order fix to an exact-hash-verified temporary copy of `i18n-embed-fl` 0.9.4, refuses the candidate unless every artifact hash matches bit-for-bit, and provenance-attests the unsigned executables, VSIX, source archive, and SBOM. The Ed25519 seed corresponding to `compatibility/public-key.hex` remains only on the maintainer workstation. `scripts/publish_draft_release.ps1` accepts a successful release-workflow run ID, requires that run to match local `HEAD`, downloads only its primary candidate, runs the isolated finalizer locally, checks the generated public key, publishes a signed draft, and deletes its temporary `.artifacts` workspace in `finally`. `src/bin/sign_release.rs` signs exact manifest bytes. The signed draft must then pass downloaded-artifact install, bare default and explicit routes for both CLIs, native restoration, uninstall, residue, exact raw-PATH, and latency checks before publication. v0.1 does not include Authenticode signing or established SmartScreen reputation.
+Release dispatches are serialized, and preparation requires the requested manifest sequence to exceed every existing release or draft manifest sequence. GitHub performs two unsigned builds with normalized paths and deterministic timestamps, refuses the candidate unless every artifact hash matches bit-for-bit, and provenance-attests the unsigned executables, VSIX, source archive, and SBOM. The Ed25519 seed corresponding to `compatibility/public-key.hex` remains only on the maintainer workstation. `scripts/publish_draft_release.ps1` accepts a successful release-workflow run ID, requires that run to match local `HEAD`, downloads only its primary candidate, runs the isolated finalizer locally, checks the generated public key, publishes a signed draft, and deletes its temporary `.artifacts` workspace in `finally`. `src/bin/sign_release.rs` signs exact manifest bytes. The signed draft must then pass downloaded-artifact install, bare default and explicit routes for both CLIs, native restoration, uninstall, residue, exact raw-PATH, and latency checks before publication. v0.1 does not include Authenticode signing or established SmartScreen reputation.
 
 ## Documentation
 
