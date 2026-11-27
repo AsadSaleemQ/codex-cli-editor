@@ -25,7 +25,16 @@ if ($AddedTests -gt 0 -and -not (Test-Path -LiteralPath $expectedPath -PathType 
 
 $outputLines = [Collections.Generic.List[string]]::new()
 $ErrorActionPreference = 'Continue'
-& cargo "+$Toolchain" test --locked --manifest-path $manifest -p codex-tui --no-fail-fast 2>&1 |
+# This fixture launches real PowerShell and requires a readiness marker within ten seconds.
+# Exercise its original deadline and shutdown assertions before the parallel test processes start.
+$shellTest = 'app::tests::background_exit_tests::exit_interrupts_before_requesting_shutdown'
+$isolated = @(& cargo "+$Toolchain" test --locked --manifest-path $manifest -p codex-tui --lib $shellTest -- --exact 2>&1)
+if ($LASTEXITCODE -ne 0 -or ($isolated -join "`n") -notmatch 'test result: ok\. 1 passed; 0 failed;') {
+    $isolated | Write-Output
+    throw "Isolated shell shutdown test failed: $shellTest"
+}
+foreach ($line in $isolated) { $outputLines.Add($line.ToString()); Write-Output $line }
+& cargo "+$Toolchain" test --locked --manifest-path $manifest -p codex-tui --no-fail-fast -- --skip $shellTest 2>&1 |
     ForEach-Object {
         $line = $_.ToString()
         $outputLines.Add($line)
@@ -51,7 +60,9 @@ $passed = ($summaryMatches | ForEach-Object { [int]$_.Groups[1].Value } | Measur
 $failed = ($summaryMatches | ForEach-Object { [int]$_.Groups[2].Value } | Measure-Object -Sum).Sum
 $ignored = ($summaryMatches | ForEach-Object { [int]$_.Groups[3].Value } | Measure-Object -Sum).Sum
 if ($AddedTests -eq 0) {
-    if ($passed -lt 4000 -or $failed -ne @($actual | Where-Object { $_ }).Count) { throw 'Incomplete clean Windows TUI test inventory.' }
+    $reference = @(Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\compatibility\codex-tui-windows-baseline-failures.txt'))
+    if ($passed -ne 6220 -or $failed -ne $reference.Count -or $ignored -ne 7 -or
+        @(Compare-Object $reference @($actual)).Count -ne 0) { throw 'Clean Windows TUI suite differs from the recorded 0.172.0 baseline.' }
     [ordered]@{ commit = $commit; passed = $passed; failed = $failed; ignored = $ignored; failures = @($actual | Where-Object { $_ }) } |
         ConvertTo-Json | Set-Content -LiteralPath $expectedPath
     Write-Output "Measured clean Codex Windows baseline ($passed passed, $failed failed, $ignored ignored)."
