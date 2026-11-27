@@ -107,16 +107,17 @@ Updates are explicit and bundle-based; startup never blocks on a network downloa
 |---|---|
 | Operating system | Windows 11 x64. macOS and Linux are not currently supported. |
 | Editor | Microsoft VS Code 1.134, 1.135, and 1.137 validated; the extension manifest accepts VS Code `^1.90.0`. VS Code forks are untested. |
-| Enhanced Codex | Codex CLI 0.154.0 (`rust-v0.154.0`) with an exact signed compatibility match. |
+| Enhanced Codex | Codex CLI 0.172.0 (`rust-v0.172.0`) with an exact signed compatibility match. |
 | Terminal | VS Code integrated terminal on the validated Windows baseline. |
 | Release toolchain | Rust 1.95.0 with Windows MSVC. |
 
-The next editor build (0.2.3) targets Codex 0.172.0. Using it requires a signed 0.2.3 bundle.
+For an existing installation, extract the signed 0.2.3 Windows ZIP. From the extracted folder run `.\codex-cli-editor.exe update --bundle .`, then start a fresh Codex session.
 
 Validated release combinations:
 
 | Codex CLI Editor | Native Codex | Microsoft VS Code | Validation |
 |---|---|---|---|
+| 0.2.3 | 0.172.0 | 1.134.0, 1.135.0, 1.137.0 | Signed compatibility manifest. Automated Ctrl+A replacement tests passed. |
 | 0.2.2 / 0.2.1 | 0.154.0 | 1.137.0 | Automated gates and live Windows terminal acceptance. |
 | 0.2.2 / 0.2.1 | 0.154.0 | 1.134.0, 1.135.0 | Automated compatibility baselines. |
 | 0.2.0 | 0.148.0 | 1.134.0, 1.135.0 | Published automated compatibility baseline. |

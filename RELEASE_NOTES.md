@@ -1,3 +1,9 @@
+# Codex CLI Editor v0.2.3
+
+- Adds signed enhanced-mode support for Codex CLI 0.172.0 on Windows x64.
+- Ctrl+A selects the complete editable prompt. Automated tests cover replacing a multiline draft by typing after selection.
+- To upgrade, extract the Windows ZIP and run `.\codex-cli-editor.exe update --bundle .` from the extracted folder. Start a fresh Codex session to load the update.
+
 # Codex CLI Editor v0.2.2
 
 ## Corrected
