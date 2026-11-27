@@ -108,8 +108,8 @@ mod implementation {
 
     pub fn prepend_shim(snapshot: &RegistryValueSnapshot, shim: &Path) -> Result<Vec<u8>> {
         let mut units = Vec::with_capacity(snapshot.data.len() / 2);
-        for bytes in snapshot.data.chunks_exact(2) {
-            units.push(u16::from_le_bytes([bytes[0], bytes[1]]));
+        for bytes in snapshot.data.as_chunks::<2>().0 {
+            units.push(u16::from_le_bytes(*bytes));
         }
         while units.last() == Some(&0) {
             units.pop();
@@ -134,8 +134,8 @@ mod implementation {
 
     pub fn remove_shim(snapshot: &RegistryValueSnapshot, shim: &Path) -> Result<Vec<u8>> {
         let mut units = Vec::with_capacity(snapshot.data.len() / 2);
-        for bytes in snapshot.data.chunks_exact(2) {
-            units.push(u16::from_le_bytes([bytes[0], bytes[1]]));
+        for bytes in snapshot.data.as_chunks::<2>().0 {
+            units.push(u16::from_le_bytes(*bytes));
         }
         while units.last() == Some(&0) {
             units.pop();
